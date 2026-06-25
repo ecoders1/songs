@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -9,92 +10,133 @@ export default function SplashScreen() {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    // Register service worker
+    // Register service worker for PWA
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .catch(() => {});
     }
 
-    // Animate progress bar
+    // Animate progress 0 → 100 over ~3 seconds
     const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
+        if (prev >= 100) { clearInterval(interval); return 100; }
         return prev + 2;
       });
-    }, 50);
+    }, 60);
 
-    // Navigate after splash
+    // Navigate to home after splash
     const timer = setTimeout(() => {
       setFadeOut(true);
       setTimeout(() => router.push('/home'), 400);
-    }, 3000);
+    }, 3200);
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timer);
-    };
+    return () => { clearInterval(interval); clearTimeout(timer); };
   }, [router]);
 
   return (
     <div
-      className={`fixed inset-0 flex flex-col items-center justify-center transition-opacity duration-500 ${
+      className={`fixed inset-0 flex flex-col items-center justify-center select-none transition-opacity duration-500 ${
         fadeOut ? 'opacity-0' : 'opacity-100'
       }`}
-      style={{ background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}
+      style={{ background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
     >
-      {/* Cross + Music icon */}
-      <div className="mb-8 relative">
-        <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
-          {/* Cross */}
-          <rect x="40" y="5" width="10" height="80" rx="5" fill="#D4AF37" />
-          <rect x="15" y="28" width="60" height="10" rx="5" fill="#D4AF37" />
-          {/* Music note */}
-          <circle cx="68" cy="70" r="7" fill="#F0D060" opacity="0.85" />
-          <rect x="74" y="45" width="5" height="25" rx="2.5" fill="#F0D060" opacity="0.85" />
-          <rect x="74" y="45" width="14" height="4" rx="2" fill="#F0D060" opacity="0.85" />
-        </svg>
-        {/* Glow */}
+      {/* Decorative rings */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
-          className="absolute inset-0 rounded-full blur-2xl opacity-30"
-          style={{ background: '#D4AF37', transform: 'scale(1.4)' }}
+          className="w-72 h-72 rounded-full absolute"
+          style={{ border: '1px solid rgba(212,175,55,0.08)' }}
+        />
+        <div
+          className="w-52 h-52 rounded-full absolute"
+          style={{ border: '1px solid rgba(212,175,55,0.12)' }}
+        />
+        <div
+          className="w-36 h-36 rounded-full absolute"
+          style={{ border: '1px solid rgba(212,175,55,0.18)' }}
         />
       </div>
 
-      {/* App Name */}
-      <h1 className="text-3xl font-bold text-white tracking-wide mb-1">
-        Faarfannaa
-      </h1>
-      <p className="text-sm mb-12" style={{ color: '#D4AF37' }}>
-        Apostolic Songs Afaan Oromoo
-      </p>
-
-      {/* Progress bar */}
-      <div className="w-48 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
+      {/* App Icon — globe.svg with glow */}
+      <div className="relative mb-6 z-10">
         <div
-          className="h-full rounded-full transition-all duration-100"
+          className="w-28 h-28 rounded-3xl flex items-center justify-center overflow-hidden"
           style={{
-            width: `${progress}%`,
-            background: 'linear-gradient(90deg, #D4AF37, #F0D060)',
+            background: 'linear-gradient(135deg, #D4AF37 0%, #F0D060 50%, #B8960C 100%)',
+            boxShadow: '0 0 60px rgba(212,175,55,0.4), 0 20px 40px rgba(0,0,0,0.3)',
+          }}
+        >
+          <Image
+            src="/globe.svg"
+            alt="Apostolic Songs"
+            width={72}
+            height={72}
+            priority
+            style={{ filter: 'invert(1) sepia(1) saturate(0) brightness(0.1)' }}
+          />
+        </div>
+        {/* Gold pulse ring */}
+        <div
+          className="absolute inset-0 rounded-3xl"
+          style={{
+            border: '2px solid rgba(212,175,55,0.5)',
+            animation: 'ping 2s cubic-bezier(0,0,0.2,1) infinite',
           }}
         />
       </div>
 
-      {/* Dots */}
-      <div className="flex gap-2 mt-6">
+      {/* App name */}
+      <div className="text-center z-10 px-8">
+        <h1 className="text-3xl font-extrabold text-white tracking-wide mb-1">
+          Faarfannaa
+        </h1>
+        <p
+          className="text-base font-semibold tracking-wider"
+          style={{ color: '#D4AF37' }}
+        >
+          Apostolic Songs Afaan Oromoo
+        </p>
+        <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          Church Music · Offline Ready
+        </p>
+      </div>
+
+      {/* Progress bar */}
+      <div
+        className="mt-12 w-52 h-1 rounded-full overflow-hidden z-10"
+        style={{ background: 'rgba(255,255,255,0.1)' }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-100"
+          style={{
+            width: `${progress}%`,
+            background: 'linear-gradient(90deg, #D4AF37, #F0D060, #D4AF37)',
+          }}
+        />
+      </div>
+
+      {/* Dots indicator */}
+      <div className="flex gap-2 mt-5 z-10">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="w-2 h-2 rounded-full"
+            className="rounded-full transition-all duration-500"
             style={{
+              width: progress > (i + 1) * 28 ? '20px' : '6px',
+              height: '6px',
               background: '#D4AF37',
-              opacity: progress > i * 33 ? 1 : 0.3,
-              transition: 'opacity 0.3s ease',
+              opacity: progress > i * 28 ? 1 : 0.25,
             }}
           />
         ))}
       </div>
+
+      <style>{`
+        @keyframes ping {
+          0% { transform: scale(1); opacity: 0.6; }
+          70%, 100% { transform: scale(1.25); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import type { Artist, Category } from '@/lib/types';
 
 const CATEGORIES: { key: Category; label: string; emoji: string }[] = [
@@ -70,13 +71,15 @@ export default function HomePage() {
       >
         {/* Logo row */}
         <div className="flex items-center gap-3 mb-4">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <rect x="14" y="2" width="4" height="28" rx="2" fill="#D4AF37" />
-            <rect x="5" y="10" width="22" height="4" rx="2" fill="#D4AF37" />
-          </svg>
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #D4AF37, #F0D060)' }}
+          >
+            <Image src="/globe.svg" alt="Logo" width={24} height={24} style={{ filter: 'invert(1) sepia(1) saturate(0) brightness(0.1)' }} />
+          </div>
           <div>
             <h1 className="text-white font-bold text-lg leading-tight">Faarfannaa</h1>
-            <p className="text-xs" style={{ color: '#D4AF37' }}>Apostolic Songs</p>
+            <p className="text-xs" style={{ color: '#D4AF37' }}>Apostolic Songs Afaan Oromoo</p>
           </div>
         </div>
 

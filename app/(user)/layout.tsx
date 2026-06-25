@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { usePlayer } from '@/context/PlayerContext';
 import MiniPlayer from '@/components/MiniPlayer';
+import PWAInstallBanner from '@/components/PWAInstallBanner';
 
 const navItems = [
   {
@@ -57,21 +58,28 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto" style={{ paddingBottom: currentSong ? '128px' : '72px' }}>
+      <main
+        className="flex-1 overflow-y-auto"
+        style={{ paddingBottom: currentSong ? '132px' : '72px' }}
+      >
         {children}
       </main>
+
+      {/* PWA auto-install banner */}
+      <PWAInstallBanner />
 
       {/* Mini player */}
       {currentSong && <MiniPlayer />}
 
       {/* Bottom navigation */}
       <nav
-        className="fixed bottom-0 left-0 right-0 bg-white border-t z-40 pb-safe"
+        className="fixed bottom-0 left-0 right-0 bg-white border-t z-40"
         style={{ borderColor: '#e8e8f0' }}
       >
         <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
           {navItems.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + '/');
+            const active =
+              pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}

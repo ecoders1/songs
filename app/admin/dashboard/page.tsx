@@ -86,7 +86,7 @@ export default function AdminDashboard() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
             style={{ background: '#1a1a2e', color: 'white' }}
           >
-            👤 Add Artist
+            👤 Add Artist / Group
           </Link>
         </div>
       </div>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#1a1a2e"/>
+  <!-- Globe circle -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#D4AF37" stroke-width="16"/>
+  <!-- Latitude lines -->
+  <ellipse cx="256" cy="256" rx="160" ry="64" fill="none" stroke="#D4AF37" stroke-width="10" opacity="0.6"/>
+  <line x1="96" y1="256" x2="416" y2="256" stroke="#D4AF37" stroke-width="10" opacity="0.6"/>
+  <!-- Longitude lines -->
+  <ellipse cx="256" cy="256" rx="64" ry="160" fill="none" stroke="#D4AF37" stroke-width="10" opacity="0.6"/>
+  <!-- Vertical center line -->
+  <line x1="256" y1="96" x2="256" y2="416" stroke="#D4AF37" stroke-width="10" opacity="0.6"/>
+  <!-- Cross overlay -->
+  <rect x="244" y="120" width="24" height="180" rx="8" fill="#D4AF37" opacity="0.9"/>
+  <rect x="186" y="178" width="140" height="24" rx="8" fill="#D4AF37" opacity="0.9"/>
+  <!-- Music note -->
+  <circle cx="350" cy="360" r="22" fill="#F0D060"/>
+  <rect x="368" y="295" width="14" height="70" rx="7" fill="#F0D060"/>
+  <rect x="368" y="295" width="38" height="14" rx="7" fill="#F0D060"/>
+</svg>

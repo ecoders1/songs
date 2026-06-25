@@ -12,7 +12,8 @@ export const metadata: Metadata = {
     title: "Faarfannaa",
   },
   icons: {
-    apple: "/icons/icon-192.png",
+    icon: "/icons/icon.svg",
+    apple: "/icons/icon.svg",
   },
 };
 

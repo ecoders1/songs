@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { Song, Artist } from '@/lib/types';
 
 type FormMode = 'none' | 'add-artist' | 'edit-artist' | 'add-song' | 'edit-song';
@@ -35,6 +36,7 @@ const defaultForm: FormData = {
 };
 
 export default function AdminSongsPage() {
+  const searchParams = useSearchParams();
   const [songs, setSongs] = useState<Song[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,21 @@ export default function AdminSongsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Auto-open form based on URL param (?action=add or ?action=add-artist)
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'add') {
+      setFormMode('add-song');
+      setForm(defaultForm);
+      setEditingId(null);
+    } else if (action === 'add-artist') {
+      setFormMode('add-artist');
+      setForm(defaultForm);
+      setEditingId(null);
+      setActiveTab('artists');
+    }
+  }, [searchParams]);
 
   const showMsg = (text: string) => {
     setMsg(text);
