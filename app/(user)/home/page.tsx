@@ -71,15 +71,13 @@ export default function HomePage() {
       >
         {/* Logo row */}
         <div className="flex items-center gap-3 mb-4">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #D4AF37, #F0D060)' }}
-          >
-            <Image src="/globe.svg" alt="Logo" width={24} height={24} style={{ filter: 'invert(1) sepia(1) saturate(0) brightness(0.1)' }} />
+          <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0"
+            style={{ border: '2px solid rgba(212,175,55,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+            <Image src="/icons/church-logo.svg" alt="Logo" width={44} height={44} className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="text-white font-bold text-lg leading-tight">Faarfannaa</h1>
-            <p className="text-xs" style={{ color: '#D4AF37' }}>Apostolic Songs Afaan Oromoo</p>
+            <h1 className="text-white font-bold text-base leading-tight">Apostolic Songs</h1>
+            <p className="text-xs font-medium" style={{ color: '#D4AF37' }}>Afaan Oromo</p>
           </div>
         </div>
 

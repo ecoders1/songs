@@ -1,30 +1,27 @@
 {
-  "name": "Apostolic Songs Afaan Oromoo",
-  "short_name": "Faarfannaa",
-  "description": "Apostolic Church Songs in Afaan Oromoo and other Ethiopian languages",
+  "name": "Apostolic Songs Afaan Oromo",
+  "short_name": "Apostolic Songs",
+  "description": "Apostolic Church Songs in Afaan Oromo and other Ethiopian languages",
   "start_url": "/home",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
+  "background_color": "#0d1b2a",
   "theme_color": "#D4AF37",
   "orientation": "portrait-primary",
   "lang": "om",
   "categories": ["music", "entertainment"],
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "/icons/church-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon.svg",
+      "src": "/icons/church-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
     }
-  ],
-  "screenshots": [],
-  "related_applications": [],
-  "prefer_related_applications": false
+  ]
 }

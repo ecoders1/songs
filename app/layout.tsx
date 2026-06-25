@@ -3,17 +3,17 @@ import "./globals.css";
 import { PlayerProvider } from "@/context/PlayerContext";
 
 export const metadata: Metadata = {
-  title: "Apostolic Songs Afaan Oromoo",
-  description: "Apostolic Church Songs in Afaan Oromoo and other Ethiopian languages",
+  title: "Apostolic Songs Afaan Oromo",
+  description: "Apostolic Church Songs in Afaan Oromo and other Ethiopian languages",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Faarfannaa",
+    title: "Apostolic Songs",
   },
   icons: {
-    icon: "/icons/icon.svg",
-    apple: "/icons/icon.svg",
+    icon: "/icons/church-logo.svg",
+    apple: "/icons/church-logo.svg",
   },
 };
 

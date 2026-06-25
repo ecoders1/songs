@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- Outer white ring -->
+  <circle cx="200" cy="200" r="198" fill="white" stroke="#cccccc" stroke-width="2"/>
+  <!-- Silver border ring -->
+  <circle cx="200" cy="200" r="192" fill="none" stroke="#b0b8c8" stroke-width="14"/>
+  <!-- Inner blue background -->
+  <circle cx="200" cy="200" r="178" fill="#5ba3d9"/>
+
+  <!-- Cross at top -->
+  <rect x="193" y="38" width="14" height="60" rx="3" fill="#8B1A1A"/>
+  <rect x="178" y="60" width="44" height="12" rx="3" fill="#8B1A1A"/>
+
+  <!-- Menorah (7-branch candelabra) -->
+  <!-- Center stem -->
+  <rect x="196" y="155" width="8" height="80" rx="3" fill="#C8A000"/>
+  <!-- Base -->
+  <rect x="168" y="228" width="64" height="10" rx="3" fill="#C8A000"/>
+  <rect x="180" y="218" width="40" height="12" rx="3" fill="#C8A000"/>
+  <!-- Left branches -->
+  <path d="M200 175 Q176 175 172 155" fill="none" stroke="#C8A000" stroke-width="6" stroke-linecap="round"/>
+  <path d="M200 190 Q168 190 164 165" fill="none" stroke="#C8A000" stroke-width="6" stroke-linecap="round"/>
+  <path d="M200 205 Q158 205 154 175" fill="none" stroke="#C8A000" stroke-width="6" stroke-linecap="round"/>
+  <!-- Right branches -->
+  <path d="M200 175 Q224 175 228 155" fill="none" stroke="#C8A000" stroke-width="6" stroke-linecap="round"/>
+  <path d="M200 190 Q232 190 236 165" fill="none" stroke="#C8A000" stroke-width="6" stroke-linecap="round"/>
+  <path d="M200 205 Q242 205 246 175" fill="none" stroke="#C8A000" stroke-width="6" stroke-linecap="round"/>
+  <!-- Candles / flames -->
+  <ellipse cx="200" cy="148" rx="4" ry="6" fill="#FFE066"/>
+  <ellipse cx="172" cy="148" rx="3.5" ry="5.5" fill="#FFE066"/>
+  <ellipse cx="164" cy="158" rx="3.5" ry="5.5" fill="#FFE066"/>
+  <ellipse cx="154" cy="168" rx="3.5" ry="5.5" fill="#FFE066"/>
+  <ellipse cx="228" cy="148" rx="3.5" ry="5.5" fill="#FFE066"/>
+  <ellipse cx="236" cy="158" rx="3.5" ry="5.5" fill="#FFE066"/>
+  <ellipse cx="246" cy="168" rx="3.5" ry="5.5" fill="#FFE066"/>
+
+  <!-- Open Bible -->
+  <path d="M130 238 Q200 228 200 238 L200 290 Q200 295 195 295 L130 285 Q124 284 124 278 L124 244 Q124 238 130 238Z" fill="#8B4513" stroke="#6B3010" stroke-width="1"/>
+  <path d="M270 238 Q200 228 200 238 L200 290 Q200 295 205 295 L270 285 Q276 284 276 278 L276 244 Q276 238 270 238Z" fill="#9B5523" stroke="#6B3010" stroke-width="1"/>
+  <!-- Bible pages left -->
+  <line x1="136" y1="252" x2="196" y2="248" stroke="white" stroke-width="1" opacity="0.5"/>
+  <line x1="136" y1="259" x2="196" y2="255" stroke="white" stroke-width="1" opacity="0.5"/>
+  <line x1="136" y1="266" x2="196" y2="262" stroke="white" stroke-width="1" opacity="0.5"/>
+  <line x1="136" y1="273" x2="196" y2="269" stroke="white" stroke-width="1" opacity="0.5"/>
+  <!-- Bible pages right -->
+  <line x1="264" y1="252" x2="204" y2="248" stroke="white" stroke-width="1" opacity="0.5"/>
+  <line x1="264" y1="259" x2="204" y2="255" stroke="white" stroke-width="1" opacity="0.5"/>
+  <line x1="264" y1="266" x2="204" y2="262" stroke="white" stroke-width="1" opacity="0.5"/>
+  <line x1="264" y1="273" x2="204" y2="269" stroke="white" stroke-width="1" opacity="0.5"/>
+  <!-- Bible spine -->
+  <rect x="197" y="234" width="6" height="58" rx="1" fill="#5a2a00"/>
+
+  <!-- Circular text - top arc: Amharic/Ge'ez style text placeholder -->
+  <path id="topArc" d="M 60,200 A 140,140 0 0,1 340,200" fill="none"/>
+  <text font-size="16" font-weight="bold" fill="#1a1a6e" font-family="serif">
+    <textPath href="#topArc" startOffset="8%">ክርስቲያን  ኣሥራልሁ  ·  የገሃንም</textPath>
+  </text>
+
+  <!-- Bottom text: Matthew 16:18 -->
+  <path id="bottomArc" d="M 55,210 A 145,145 0 0,0 345,210" fill="none"/>
+  <text font-size="14" font-weight="bold" fill="#1a1a6e" font-family="serif">
+    <textPath href="#bottomArc" startOffset="12%">ሃጌ  ዘሁ  ·  ማቴ 16:18  ·  ወፅሒተቀሉ</textPath>
+  </text>
+
+  <!-- Left side text -->
+  <text x="42" y="180" font-size="13" font-weight="bold" fill="#1a1a6e" font-family="serif" transform="rotate(-75,55,190)">· ሃሌ ቤት ·</text>
+  <!-- Right side text -->
+  <text x="330" y="145" font-size="13" font-weight="bold" fill="#1a1a6e" font-family="serif" transform="rotate(75,345,185)">ፃዕርቅፀ ·</text>
+</svg>
