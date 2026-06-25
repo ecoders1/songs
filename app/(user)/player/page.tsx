@@ -39,7 +39,7 @@ export default function PlayerPage() {
       <div className="min-h-screen flex flex-col items-center justify-center"
         style={{ background: 'linear-gradient(160deg, #0d1b2a, #0f3460)' }}>
         <div className="w-20 h-20 rounded-full overflow-hidden mb-6 opacity-50">
-          <Image src="/icons/church-logo.svg" alt="logo" width={80} height={80} className="w-full h-full" />
+          <Image src="/icons/church-logo.png" alt="logo" width={80} height={80} className="w-full h-full" />
         </div>
         <p className="text-white/50 text-sm mb-2">No song playing</p>
         <button onClick={() => router.push('/home')}
@@ -102,7 +102,7 @@ export default function PlayerPage() {
               <img src={currentSong.image_url} alt={currentSong.title}
                 className="w-full h-full object-cover" />
             ) : (
-              <Image src="/icons/church-logo.svg" alt="Apostolic Songs"
+              <Image src="/icons/church-logo.png" alt="Apostolic Songs"
                 width={140} height={140} className="w-36 h-36 opacity-80" />
             )}
           </div>

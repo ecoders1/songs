@@ -73,7 +73,7 @@ export default function HomePage() {
         <div className="flex items-center gap-3 mb-4">
           <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0"
             style={{ border: '2px solid rgba(212,175,55,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-            <Image src="/icons/church-logo.svg" alt="Logo" width={44} height={44} className="w-full h-full object-cover" />
+            <Image src="/icons/church-logo.png" alt="Logo" width={44} height={44} className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-white font-bold text-base leading-tight">Apostolic Songs</h1>

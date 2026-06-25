@@ -12,8 +12,8 @@ export const metadata: Metadata = {
     title: "Apostolic Songs",
   },
   icons: {
-    icon: "/icons/church-logo.svg",
-    apple: "/icons/church-logo.svg",
+    icon: "/icons/church-logo.png",
+    apple: "/icons/church-logo.png",
   },
 };
 

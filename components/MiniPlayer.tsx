@@ -39,7 +39,7 @@ export default function MiniPlayer() {
             <img src={currentSong.image_url} alt={currentSong.title} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center overflow-hidden">
-              <img src="/icons/church-logo.svg" alt="logo" className="w-full h-full object-cover opacity-80" />
+              <img src="/icons/church-logo.png" alt="logo" className="w-full h-full object-cover opacity-80" />
             </div>
           )}
         </button>

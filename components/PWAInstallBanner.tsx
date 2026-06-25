@@ -65,23 +65,17 @@ export default function PWAInstallBanner() {
           className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
           style={{ background: '#D4AF37' }}
         >
-          <svg width="28" height="28" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="256" cy="256" r="200" fill="none" stroke="#1a1a2e" strokeWidth="20"/>
-            <ellipse cx="256" cy="256" rx="200" ry="80" fill="none" stroke="#1a1a2e" strokeWidth="14" opacity="0.7"/>
-            <line x1="56" y1="256" x2="456" y2="256" stroke="#1a1a2e" strokeWidth="14" opacity="0.7"/>
-            <rect x="243" y="120" width="26" height="160" rx="8" fill="#1a1a2e"/>
-            <rect x="183" y="178" width="146" height="26" rx="8" fill="#1a1a2e"/>
-          </svg>
+          <img src="/icons/church-logo.png" alt="Apostolic Songs" className="w-full h-full object-cover" />
         </div>
 
         {/* Text */}
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-white text-sm">Install Faarfannaa</p>
+          <p className="font-bold text-white text-sm">Install Apostolic Songs</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
             Apostolic Songs Afaan Oromoo
           </p>
           <p className="text-xs mt-0.5" style={{ color: '#D4AF37' }}>
-            Add to home screen · Works offline
+            Afaan Oromo · Works offline
           </p>
         </div>
 

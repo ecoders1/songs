@@ -113,7 +113,7 @@ export default function ArtistPage() {
                 <img src={artist.image_url} alt={artist.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Image src="/icons/church-logo.svg" alt="logo" width={40} height={40} className="w-10 h-10 opacity-70" />
+                  <Image src="/icons/church-logo.png" alt="logo" width={40} height={40} className="w-10 h-10 opacity-70" />
                 </div>
               )}
             </div>

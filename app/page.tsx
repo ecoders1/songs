@@ -44,7 +44,7 @@ export default function SplashScreen() {
           style={{ boxShadow: '0 0 50px rgba(212,175,55,0.35), 0 16px 40px rgba(0,0,0,0.5)', border: '3px solid rgba(212,175,55,0.5)' }}
         >
           <Image
-            src="/icons/church-logo.svg"
+            src="/icons/church-logo.png"
             alt="Apostolic Songs"
             width={128}
             height={128}
