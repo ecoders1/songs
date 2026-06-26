@@ -4,223 +4,235 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlayer } from '@/context/PlayerContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { getSongCache, setSongCache } from '@/lib/dataCache';
-import type { Song } from '@/lib/types';
+import { getAllArtistsCache, setAllArtistsCache } from '@/lib/dataCache';
+import type { Artist } from '@/lib/types';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  new:    '🎵 New Songs',
+  old:    '📀 Old Songs',
+  single: '🎤 Single Artists',
+  group:  '👥 Groups & Choirs',
+};
+
+const CATEGORY_ORDER = ['new', 'group', 'single', 'old'];
 
 export default function LibraryPage() {
   const router = useRouter();
-  const { playSong, currentSong, isPlaying, isOffline, cachedSongIds, cacheAllSongs, downloadSong, offlineSongs } = usePlayer();
+  const { isOffline, offlineArtists, cacheAllSongs } = usePlayer();
   const { t } = useLanguage();
-  const [activeLanguage, setActiveLanguage] = useState('all');
-  const [songs, setSongs] = useState<Song[]>(() => getSongCache('all') || []);
-  const [loading, setLoading] = useState(() => !getSongCache('all'));
-  const [caching, setCaching] = useState(false);
-  const [cacheMsg, setCacheMsg] = useState('');
+
+  const [artists, setArtists] = useState<Artist[]>(() => getAllArtistsCache() || []);
+  const [loading, setLoading] = useState(() => !getAllArtistsCache());
+  const [searchQuery, setSearchQuery] = useState('');
   const abortRef = useRef<AbortController | null>(null);
 
-  const languages = ['all', 'oromo', 'english', 'amharic', 'sidama', 'arabic'];
-
   useEffect(() => {
-    const lang = activeLanguage;
-
-    // Serve from cache instantly
-    const cached = getSongCache(lang);
+    const cached = getAllArtistsCache();
     if (cached) {
-      setSongs(cached);
+      setArtists(cached);
       setLoading(false);
       // Background refresh
-      const url = lang === 'all' ? '/api/songs' : `/api/songs?language=${lang}`;
-      fetch(url)
+      fetch('/api/artists')
         .then((r) => r.json())
-        .then(({ songs: fresh }) => {
+        .then(({ artists: fresh }) => {
           if (fresh?.length) {
-            setSongCache(lang, fresh);
-            setSongs(fresh);
-            cacheAllSongs(fresh);
+            setAllArtistsCache(fresh);
+            setArtists(fresh);
+            cacheAllSongs([], fresh);
           }
         })
         .catch(() => {});
       return;
     }
 
-    // No cache — fetch with shimmer
     setLoading(true);
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
-    const url = lang === 'all' ? '/api/songs' : `/api/songs?language=${lang}`;
-    fetch(url, { signal: abortRef.current.signal })
+    fetch('/api/artists', { signal: abortRef.current.signal })
       .then((r) => r.json())
-      .then(({ songs: list }) => {
-        const data: Song[] = list || [];
-        const finalList = data.length > 0 ? data
-          : (isOffline ? offlineSongs.filter(
-              (s) => lang === 'all' || s.language === lang
-            ) : []);
+      .then(({ artists: list }) => {
+        const data: Artist[] = list || [];
+        const finalList = data.length > 0 ? data : (isOffline ? offlineArtists : []);
         if (data.length > 0) {
-          setSongCache(lang, finalList);
-          cacheAllSongs(finalList);
+          setAllArtistsCache(finalList);
+          cacheAllSongs([], finalList);
         }
-        setSongs(finalList);
+        setArtists(finalList);
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === 'AbortError') return;
-        const fallback = isOffline
-          ? offlineSongs.filter((s) => lang === 'all' || s.language === lang)
-          : [];
-        setSongs(fallback);
+        setArtists(isOffline ? offlineArtists : []);
       })
       .finally(() => setLoading(false));
 
     return () => abortRef.current?.abort();
-  }, [activeLanguage, cacheAllSongs, isOffline, offlineSongs]);
+  }, [isOffline, offlineArtists, cacheAllSongs]);
 
-  const fmt = (sec: number | null) => {
-    if (!sec) return '';
-    return `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
-  };
+  // Filter by search
+  const filtered = searchQuery.trim()
+    ? artists.filter((a) =>
+        a.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : artists;
 
-  const handleCacheAll = async () => {
-    if (caching || isOffline) return;
-    setCaching(true);
-    let count = 0;
-    for (const song of songs) {
-      await downloadSong(song);
-      count++;
-    }
-    setCaching(false);
-    setCacheMsg(`✓ ${count} songs saved for offline`);
-    setTimeout(() => setCacheMsg(''), 4000);
-  };
+  // Group by category
+  const grouped = CATEGORY_ORDER.reduce<Record<string, Artist[]>>((acc, cat) => {
+    const list = filtered.filter((a) => a.category === cat);
+    if (list.length > 0) acc[cat] = list;
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Offline banner */}
       {isOffline && (
         <div className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium"
           style={{ background: '#FFF3CD', color: '#856404' }}>
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01" strokeLinecap="round" />
           </svg>
-          Offline — showing cached songs
+          Offline — showing cached artists
         </div>
       )}
 
       {/* Header */}
-      <div className="px-4 pt-12 pb-4" style={{ background: '#1a1a2e' }}>
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-white">{t.library}</h1>
-          {!isOffline && songs.length > 0 && (
-            <button onClick={handleCacheAll} disabled={caching}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-              style={{ background: caching ? 'rgba(212,175,55,0.4)' : 'rgba(212,175,55,0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)' }}>
-              {caching ? (
-                <><svg className="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/></svg>Saving...</>
-              ) : (
-                <><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/></svg>Save Offline</>
-              )}
-            </button>
+      <div className="sticky top-0 z-30 px-4 pt-12 pb-4"
+        style={{ background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)' }}>
+        <h1 className="text-xl font-bold text-white mb-4">{t.library}</h1>
+
+        {/* Search */}
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2"
+            width="16" height="16" fill="none" stroke="#888" strokeWidth="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" strokeLinecap="round" />
+          </svg>
+          <input
+            type="text"
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm bg-white text-gray-800 outline-none"
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+          />
+          {searchQuery && (
+            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              onClick={() => setSearchQuery('')}>✕</button>
           )}
-        </div>
-
-        {cacheMsg && <p className="text-xs mb-2" style={{ color: '#D4AF37' }}>{cacheMsg}</p>}
-
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          {languages.map((lang) => (
-            <button key={lang} onClick={() => setActiveLanguage(lang)}
-              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all"
-              style={activeLanguage === lang
-                ? { background: '#D4AF37', color: '#1a1a2e' }
-                : { background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
-              {lang === 'all' ? 'All Songs' : lang}
-            </button>
-          ))}
         </div>
       </div>
 
-      {/* Song list */}
-      <div className="px-4 pt-4 pb-4">
+      {/* Content */}
+      <div className="pb-6">
         {loading ? (
-          <div className="space-y-3">
+          <div className="px-4 pt-4 space-y-3">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl shimmer flex-shrink-0" />
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#f8f8fc' }}>
+                <div className="w-14 h-14 rounded-xl shimmer flex-shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 rounded shimmer w-3/4" />
-                  <div className="h-3 rounded shimmer w-1/2" />
+                  <div className="h-4 rounded shimmer w-2/3" />
+                  <div className="h-3 rounded shimmer w-1/3" />
                 </div>
               </div>
             ))}
           </div>
-        ) : songs.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <svg className="mx-auto mb-3" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path d="M9 18V5l12-2v13" strokeLinecap="round" />
-              <circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" strokeLinecap="round" />
             </svg>
-            <p>{isOffline ? 'No cached songs. Connect to internet first.' : 'No songs found'}</p>
+            <p>{isOffline ? 'No cached artists.' : t.noArtistsFound}</p>
+          </div>
+        ) : searchQuery.trim() ? (
+          /* Flat list for search results */
+          <div className="px-4 pt-4 space-y-2 fade-in">
+            {filtered.map((artist) => (
+              <ArtistRow key={artist.id} artist={artist} t={t} router={router} />
+            ))}
           </div>
         ) : (
-          <>
-            <p className="text-xs text-gray-400 mb-3">
-              {songs.length} songs
-              {cachedSongIds.size > 0 && (
-                <span className="ml-2" style={{ color: '#D4AF37' }}>· {cachedSongIds.size} saved offline</span>
-              )}
+          /* Grouped by category */
+          <div className="fade-in">
+            {Object.entries(grouped).map(([cat, list]) => (
+              <div key={cat}>
+                {/* Category header */}
+                <div className="px-4 pt-5 pb-2">
+                  <h2 className="font-bold text-gray-800 text-base">
+                    {CATEGORY_LABELS[cat] || cat}
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {list.length} {list.length === 1 ? (list[0].is_group ? t.group : t.artist) : (cat === 'group' ? 'groups' : 'artists')}
+                  </p>
+                </div>
+
+                {/* Artist cards */}
+                <div className="px-4 space-y-2">
+                  {list.map((artist) => (
+                    <ArtistRow key={artist.id} artist={artist} t={t} router={router} />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* Footer count */}
+            <p className="text-center text-xs text-gray-300 mt-6 pb-2">
+              {artists.length} artists total
             </p>
-            <div className="space-y-1 fade-in">
-              {songs.map((song) => {
-                const isActive = currentSong?.id === song.id;
-                const isCached = cachedSongIds.has(song.id);
-                return (
-                  <button key={song.id}
-                    onClick={() => { playSong(song, songs); router.push('/player'); }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-100"
-                    style={{ background: isActive ? '#FFF8E7' : 'transparent' }}>
-                    <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden relative"
-                      style={{ background: isActive ? '#D4AF37' : '#f0f0f8' }}>
-                      {song.image_url ? (
-                        <img src={song.image_url} alt={song.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <svg width="20" height="20" fill="none" stroke={isActive ? '#1a1a2e' : '#D4AF37'} strokeWidth="1.8" viewBox="0 0 24 24">
-                          <path d="M9 18V5l12-2v13" strokeLinecap="round" />
-                          <circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
-                        </svg>
-                      )}
-                      {isCached && (
-                        <div className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-white"
-                          style={{ background: '#22c55e' }} />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-medium text-sm truncate ${isActive ? 'text-yellow-600' : 'text-gray-800'}`}>
-                        {song.title}
-                      </p>
-                      <p className="text-xs text-gray-400 truncate mt-0.5">
-                        {song.artist?.name} · Track {song.track_number}
-                      </p>
-                    </div>
-                    {isActive && isPlaying ? (
-                      <div className="flex gap-0.5 items-end h-4">
-                        {[...Array(3)].map((_, i) => (
-                          <div key={i} className="w-1 rounded-full"
-                            style={{ height: `${(i + 1) * 4}px`, background: '#D4AF37',
-                              animation: `pulse 0.8s ease-in-out ${i * 0.2}s infinite alternate` }} />
-                        ))}
-                      </div>
-                    ) : (
-                      song.duration && (
-                        <span className="text-xs text-gray-400">{fmt(song.duration)}</span>
-                      )
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </>
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+function ArtistRow({ artist, t, router }: {
+  artist: Artist;
+  t: { group: string; artist: string };
+  router: ReturnType<typeof import('next/navigation').useRouter>;
+}) {
+  return (
+    <button
+      onClick={() => router.push(`/artist/${artist.id}`)}
+      className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-100 active:scale-98"
+      style={{ background: '#f8f8fc' }}
+    >
+      {/* Avatar */}
+      <div className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden"
+        style={{ background: '#e8e8f8' }}>
+        {artist.image_url ? (
+          <img src={artist.image_url} alt={artist.name} className="w-full h-full object-cover" />
+        ) : (
+          <svg width="24" height="24" fill="none" stroke="#D4AF37" strokeWidth="1.8" viewBox="0 0 24 24">
+            {artist.is_group ? (
+              <>
+                <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87" strokeLinecap="round" />
+                <circle cx="9" cy="8" r="4" /><circle cx="17" cy="8" r="4" />
+              </>
+            ) : (
+              <>
+                <circle cx="12" cy="8" r="4" />
+                <path d="M20 20c0-4.4-3.6-8-8-8s-8 3.6-8 8" strokeLinecap="round" />
+              </>
+            )}
+          </svg>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-gray-800 truncate">{artist.name}</p>
+        <p className="text-xs text-gray-500 mt-0.5">
+          {artist.is_group ? t.group : t.artist}
+          {artist.bio && <span className="text-gray-400"> · {artist.bio.slice(0, 30)}{artist.bio.length > 30 ? '…' : ''}</span>}
+        </p>
+      </div>
+
+      {/* Arrow */}
+      <svg width="16" height="16" fill="none" stroke="#ccc" strokeWidth="2" viewBox="0 0 24 24">
+        <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
   );
 }

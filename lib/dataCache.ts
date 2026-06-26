@@ -43,6 +43,13 @@ export function setArtistCache(category: string, data: Artist[]): void {
   setCached(`artists:${category}`, data);
 }
 
+export function getAllArtistsCache(): Artist[] | null {
+  return getCached<Artist[]>('artists:all');
+}
+export function setAllArtistsCache(data: Artist[]): void {
+  setCached('artists:all', data);
+}
+
 export function getSongCache(language: string): Song[] | null {
   return getCached<Song[]>(`songs:${language}`);
 }
