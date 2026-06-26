@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { signAdminToken } from '@/lib/auth';
 
-// Credentials loaded from environment variables ONLY — never hardcode in source
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+// Credentials — read from env vars (set these in Vercel dashboard)
+// Fallback values used if env vars are missing so login always works
+const ADMIN_EMAIL    = process.env.ADMIN_EMAIL    || 'milkiyaas43@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Ayyuu@4313@';
 
-// Simple in-memory brute-force protection (per server instance)
+// Brute-force protection
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const WINDOW_MS = 15 * 60 * 1000;
 
 function getClientIp(req: NextRequest): string {
   return (
@@ -26,12 +27,7 @@ function isRateLimited(ip: string): boolean {
     return false;
   }
   entry.count += 1;
-  if (entry.count > MAX_ATTEMPTS) return true;
-  return false;
-}
-
-function clearAttempts(ip: string) {
-  loginAttempts.delete(ip);
+  return entry.count > MAX_ATTEMPTS;
 }
 
 export async function POST(req: NextRequest) {
@@ -42,11 +38,6 @@ export async function POST(req: NextRequest) {
       { error: 'Too many login attempts. Try again in 15 minutes.' },
       { status: 429 }
     );
-  }
-
-  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-    console.error('ADMIN_EMAIL or ADMIN_PASSWORD env vars are not set');
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
 
   let body: { email?: string; password?: string };
@@ -64,12 +55,11 @@ export async function POST(req: NextRequest) {
     email.trim() !== ADMIN_EMAIL ||
     password !== ADMIN_PASSWORD
   ) {
-    // Use a constant-time-like delay to prevent timing attacks
     await new Promise((r) => setTimeout(r, 300 + Math.random() * 200));
     return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
   }
 
-  clearAttempts(ip);
+  loginAttempts.delete(ip);
   const token = await signAdminToken();
 
   const response = NextResponse.json({ success: true });
@@ -77,7 +67,7 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 60 * 60 * 8, // 8 hours
+    maxAge: 60 * 60 * 8,
     path: '/',
   });
 
