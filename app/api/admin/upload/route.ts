@@ -53,7 +53,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Bucket setup failed' }, { status: 500 });
   }
 
-  const ext = file.name.split('.').pop();
+  const ALLOWED_AUDIO_EXTS = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'];
+  const ALLOWED_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  const allowedExts = bucket === 'audio' ? ALLOWED_AUDIO_EXTS : ALLOWED_IMAGE_EXTS;
+
+  if (!ext || !allowedExts.includes(ext)) {
+    return NextResponse.json(
+      { error: `Invalid file type. Allowed for ${bucket}: ${allowedExts.join(', ')}` },
+      { status: 400 }
+    );
+  }
+
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const { data, error } = await supabase.storage

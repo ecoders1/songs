@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { verifyAdminToken } from '@/lib/auth';
 
 function getAnonSupabase() {
   return createClient(
@@ -13,6 +14,12 @@ function getServiceSupabase() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+}
+
+async function requireAdmin(req: NextRequest): Promise<boolean> {
+  const token = req.cookies.get('admin_token')?.value;
+  if (!token) return false;
+  return verifyAdminToken(token);
 }
 
 export async function GET(req: NextRequest) {
@@ -34,23 +41,48 @@ export async function GET(req: NextRequest) {
   if (search) query = query.ilike('title', `%${search}%`);
 
   const { data, error } = await query;
-
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ songs: data || [] });
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await requireAdmin(req))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getServiceSupabase();
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
   const { title, artist_id, audio_url, lyrics, image_url, track_number, category, language, duration } = body;
 
   if (!title || !artist_id || !audio_url) {
     return NextResponse.json({ error: 'title, artist_id, and audio_url are required' }, { status: 400 });
   }
 
+  // Validate enums
+  const validCategories = ['new', 'old', 'single', 'group'];
+  const validLanguages = ['oromo', 'english', 'amharic', 'sidama', 'arabic'];
+  if (category && !validCategories.includes(category as string)) {
+    return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
+  }
+  if (language && !validLanguages.includes(language as string)) {
+    return NextResponse.json({ error: 'Invalid language' }, { status: 400 });
+  }
+
   const { data, error } = await supabase
     .from('songs')
-    .insert({ title, artist_id, audio_url, lyrics, image_url, track_number: track_number ?? 1, category: category ?? 'new', language: language ?? 'oromo', duration })
+    .insert({
+      title, artist_id, audio_url, lyrics, image_url,
+      track_number: track_number ?? 1,
+      category: category ?? 'new',
+      language: language ?? 'oromo',
+      duration,
+    })
     .select('*, artist:artists(*)')
     .single();
 
