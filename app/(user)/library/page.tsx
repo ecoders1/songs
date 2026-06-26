@@ -8,7 +8,7 @@ import type { Song } from '@/lib/types';
 
 export default function LibraryPage() {
   const router = useRouter();
-  const { playSong, currentSong, isPlaying, isOffline, cachedSongIds, cacheAllSongs, downloadSong } = usePlayer();
+  const { playSong, currentSong, isPlaying, isOffline, cachedSongIds, cacheAllSongs, downloadSong, offlineSongs } = usePlayer();
   const { t } = useLanguage();
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,17 +26,24 @@ export default function LibraryPage() {
         const res = await fetch(url);
         const data = await res.json();
         const list: Song[] = data.songs || [];
-        setSongs(list);
-        // Pre-cache all songs in background on every load
-        cacheAllSongs(list);
+        // If offline and API returned empty, use IndexedDB data
+        const finalList = list.length > 0 ? list : (isOffline ? offlineSongs.filter(
+          s => activeLanguage === 'all' || s.language === activeLanguage
+        ) : []);
+        setSongs(finalList);
+        if (finalList.length > 0) cacheAllSongs(finalList);
       } catch {
-        setSongs([]);
+        // Network error — use IndexedDB fallback
+        const fallback = isOffline ? offlineSongs.filter(
+          s => activeLanguage === 'all' || s.language === activeLanguage
+        ) : [];
+        setSongs(fallback);
       } finally {
         setLoading(false);
       }
     };
     fetchSongs();
-  }, [activeLanguage, cacheAllSongs]);
+  }, [activeLanguage, cacheAllSongs, isOffline, offlineSongs]);
 
   const formatDuration = (sec: number | null) => {
     if (!sec) return '';

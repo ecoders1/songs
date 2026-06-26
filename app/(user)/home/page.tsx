@@ -10,7 +10,7 @@ import type { Artist, Category } from '@/lib/types';
 export default function HomePage() {
   const router = useRouter();
   const { t } = useLanguage();
-  const { isOffline } = usePlayer();
+  const { isOffline, offlineArtists, cacheAllSongs } = usePlayer();
   const [selectedCategory, setSelectedCategory] = useState<Category>('new');
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,13 +30,20 @@ export default function HomePage() {
     try {
       const res = await fetch(`/api/artists?category=${cat}`);
       const data = await res.json();
-      setArtists(data.artists || []);
+      const list = data.artists || [];
+      // Use IndexedDB fallback if offline and API returned empty
+      const finalList = list.length > 0 ? list
+        : (isOffline ? offlineArtists.filter((a: Artist) => a.category === cat) : []);
+      setArtists(finalList);
+      // Persist fresh artist data for offline use
+      if (list.length > 0) cacheAllSongs([], list);
     } catch {
-      setArtists([]);
+      const fallback = isOffline ? offlineArtists.filter((a: Artist) => a.category === cat) : [];
+      setArtists(fallback);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isOffline, offlineArtists, cacheAllSongs]);
 
   useEffect(() => {
     fetchArtists(selectedCategory);
@@ -54,15 +61,24 @@ export default function HomePage() {
       try {
         const res = await fetch(`/api/artists?search=${encodeURIComponent(searchQuery)}`);
         const data = await res.json();
-        setSearchResults(data.artists || []);
+        const list = data.artists || [];
+        // Offline fallback
+        const finalList = list.length > 0 ? list
+          : offlineArtists.filter((a: Artist) =>
+              a.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        setSearchResults(finalList);
       } catch {
-        setSearchResults([]);
+        const fallback = offlineArtists.filter((a: Artist) =>
+          a.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setSearchResults(fallback);
       } finally {
         setIsSearching(false);
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, offlineArtists]);
 
   const displayList = searchQuery.trim() ? searchResults : artists;
 
