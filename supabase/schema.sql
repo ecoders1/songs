@@ -93,3 +93,29 @@ create policy "Public read playlists"      on playlists      for select using (t
 create policy "Public read playlist_songs" on playlist_songs for select using (true);
 
 -- Full access via service role (admin operations go through API with service key)
+
+-- ─── Seed demo data (safe to re-run — uses ON CONFLICT DO NOTHING) ────────────
+-- Creates sample artists and songs so the app has content immediately.
+-- Replace audio_url values with your real Supabase storage URLs after uploading.
+
+INSERT INTO artists (id, name, bio, is_group, category) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'Caalaa Bultumee', 'Faarfataa Afaan Oromoo beekamaa', false, 'single'),
+  ('00000000-0000-0000-0000-000000000002', 'Group Faarfannaa', 'Garee faarfannaa waldaa', true, 'group'),
+  ('00000000-0000-0000-0000-000000000003', 'Elemoo Hora', 'Faarfataa', false, 'new'),
+  ('00000000-0000-0000-0000-000000000004', 'Choir Apostolic', 'Garee faarfannaa Apostolic', true, 'group')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO songs (id, title, artist_id, audio_url, track_number, category, language, duration) VALUES
+  ('10000000-0000-0000-0000-000000000001', 'Faarfannaa 1', '00000000-0000-0000-0000-000000000001',
+   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 1, 'new', 'oromo', 180),
+  ('10000000-0000-0000-0000-000000000002', 'Faarfannaa 2', '00000000-0000-0000-0000-000000000001',
+   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', 2, 'new', 'oromo', 210),
+  ('10000000-0000-0000-0000-000000000003', 'Faarsaa Garee 1', '00000000-0000-0000-0000-000000000002',
+   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', 1, 'group', 'oromo', 195),
+  ('10000000-0000-0000-0000-000000000004', 'Faarsaa Haaraa', '00000000-0000-0000-0000-000000000003',
+   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', 1, 'new', 'oromo', 220),
+  ('10000000-0000-0000-0000-000000000005', 'Faarfannaa Durii', '00000000-0000-0000-0000-000000000001',
+   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', 3, 'old', 'oromo', 175),
+  ('10000000-0000-0000-0000-000000000006', 'Choir Song 1', '00000000-0000-0000-0000-000000000004',
+   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', 1, 'group', 'oromo', 200)
+ON CONFLICT (id) DO NOTHING;

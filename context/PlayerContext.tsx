@@ -208,15 +208,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   // ── Cache ALL songs + persist to IndexedDB ────────────────────────────────
   const cacheAllSongs = useCallback((songs: Song[], artists: Artist[] = []) => {
+    // Persist artists even if songs array is empty
+    if (artists.length) {
+      saveToIDB('artists', artists).catch(() => {});
+      setOfflineArtists(artists);
+    }
+
     if (!songs.length) return;
 
-    // 1. Persist song & artist data to IndexedDB (survives SW reinstall)
+    // 1. Persist song data to IndexedDB (survives SW reinstall)
     saveToIDB('songs', songs).catch(() => {});
-    if (artists.length) saveToIDB('artists', artists).catch(() => {});
-
-    // Update in-memory offline data
     setOfflineSongs(songs);
-    if (artists.length) setOfflineArtists(artists);
 
     // 2. Tell SW to cache all audio + images in background
     sendToSW({

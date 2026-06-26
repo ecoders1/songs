@@ -93,10 +93,14 @@ export default function AdminSongsPage() {
     fd.append('file', file);
     fd.append('bucket', bucket);
     setUploadProgress(`Uploading ${file.name}...`);
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+    const res = await fetch('/api/admin/upload', {
+      method: 'POST',
+      body: fd,
+      credentials: 'include',
+    });
     const data = await res.json();
     setUploadProgress('');
-    if (!res.ok) throw new Error(data.error);
+    if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
     return data.url;
   };
 
@@ -122,6 +126,7 @@ export default function AdminSongsPage() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
@@ -174,6 +179,7 @@ export default function AdminSongsPage() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
@@ -196,14 +202,16 @@ export default function AdminSongsPage() {
 
   const handleDeleteSong = async (id: string) => {
     if (!confirm('Delete this song?')) return;
-    const res = await fetch(`/api/songs/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/songs/${id}`, { method: 'DELETE', credentials: 'include' });
     if (res.ok) { showMsg('Song deleted'); fetchData(); }
+    else { const d = await res.json(); showMsg(`Error: ${d.error || 'Delete failed'}`); }
   };
 
   const handleDeleteArtist = async (id: string) => {
     if (!confirm('Delete this artist and ALL their songs?')) return;
-    const res = await fetch(`/api/artists/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/artists/${id}`, { method: 'DELETE', credentials: 'include' });
     if (res.ok) { showMsg('Artist deleted'); fetchData(); }
+    else { const d = await res.json(); showMsg(`Error: ${d.error || 'Delete failed'}`); }
   };
 
   const startEditSong = (song: Song) => {
