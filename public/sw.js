@@ -1,7 +1,9 @@
-// ─── Cache version: bump this string on every deploy to force update ──────────
-const VERSION = 'v6';
+// ─── Cache version: bump on every deploy ─────────────────────────────────────
+const VERSION = 'v7';
 const CACHE_NAME = `faarfannaa-${VERSION}`;
-const AUDIO_CACHE = 'faarfannaa-audio-v1'; // audio cache is version-independent
+const AUDIO_CACHE = 'faarfannaa-audio-v1';   // persists across versions
+const API_CACHE   = 'faarfannaa-api-v1';     // persists across versions
+const IMAGE_CACHE = 'faarfannaa-img-v1';     // persists across versions
 
 const STATIC_ASSETS = [
   '/',
@@ -9,6 +11,7 @@ const STATIC_ASSETS = [
   '/library',
   '/playlist',
   '/settings',
+  '/player',
   '/icons/icon.svg',
   '/manifest.json',
 ];
@@ -17,39 +20,47 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      // addAll failures are non-fatal
       cache.addAll(STATIC_ASSETS).catch(() => {})
     )
   );
-  // Take over immediately — don't wait for old SW to expire
   self.skipWaiting();
 });
 
-// ─── Activate: wipe ALL old page caches ──────────────────────────────────────
+// ─── Activate: clean old PAGE caches, keep audio/api/image caches ────────────
 self.addEventListener('activate', (event) => {
+  const KEEP = [CACHE_NAME, AUDIO_CACHE, API_CACHE, IMAGE_CACHE];
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          // delete any page cache that isn't the current version
-          // but keep audio cache forever (user downloaded songs)
-          .filter((k) => k !== CACHE_NAME && k !== AUDIO_CACHE)
-          .map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => !KEEP.includes(k)).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function isAudioUrl(url) {
+  return (
+    url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac)$/i) ||
+    (url.hostname.includes('supabase') && url.pathname.includes('/storage/') && url.pathname.includes('/audio/'))
+  );
+}
+
+function isImageUrl(url) {
+  return (
+    url.pathname.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i) ||
+    (url.hostname.includes('supabase') && url.pathname.includes('/storage/') && url.pathname.includes('/images/'))
+  );
+}
+
+function isApiUrl(url) {
+  return url.pathname.startsWith('/api/songs') || url.pathname.startsWith('/api/artists');
+}
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 1. Audio files & Supabase storage → cache-first (offline playback)
-  const isAudio =
-    url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac)$/i) ||
-    (url.hostname.includes('supabase') && url.pathname.includes('/storage/'));
-
-  if (isAudio) {
+  // 1. Audio — cache-first (offline playback)
+  if (isAudioUrl(url)) {
     event.respondWith(
       caches.open(AUDIO_CACHE).then(async (cache) => {
         const cached = await cache.match(event.request);
@@ -59,14 +70,57 @@ self.addEventListener('fetch', (event) => {
           if (response.ok) cache.put(event.request, response.clone());
           return response;
         } catch {
-          return new Response('Audio unavailable offline', { status: 503 });
+          return cached || new Response('Audio unavailable offline', { status: 503 });
         }
       })
     );
     return;
   }
 
-  // 2. API routes → network only, never cache
+  // 2. Images from Supabase — cache-first
+  if (isImageUrl(url)) {
+    event.respondWith(
+      caches.open(IMAGE_CACHE).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        try {
+          const response = await fetch(event.request.clone());
+          if (response.ok) cache.put(event.request, response.clone());
+          return response;
+        } catch {
+          return cached || new Response('Image unavailable offline', { status: 503 });
+        }
+      })
+    );
+    return;
+  }
+
+  // 3. Songs/Artists API — network-first, fallback to API cache
+  if (isApiUrl(url)) {
+    event.respondWith(
+      caches.open(API_CACHE).then(async (cache) => {
+        try {
+          const response = await fetch(event.request.clone());
+          if (response.ok) {
+            // Cache with 24h max-age hint
+            cache.put(event.request, response.clone());
+          }
+          return response;
+        } catch {
+          // Offline — serve from cache
+          const cached = await cache.match(event.request);
+          if (cached) return cached;
+          return new Response(JSON.stringify({ songs: [], artists: [], error: 'offline' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'X-Offline': 'true' },
+          });
+        }
+      })
+    );
+    return;
+  }
+
+  // 4. Other admin API routes — network only
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() =>
@@ -79,34 +133,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. HTML navigation requests → network-first, short timeout
-  //    This ensures users always get the latest page when online.
+  // 5. HTML navigation — network-first, fast timeout, cache fallback
   if (event.request.mode === 'navigate') {
     event.respondWith(
       Promise.race([
         fetch(event.request.clone()).then((response) => {
           if (response.ok) {
-            caches.open(CACHE_NAME).then((cache) =>
-              cache.put(event.request, response.clone())
-            );
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
           }
           return response;
         }),
-        // 4 second timeout — fall back to cache if network is slow
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('timeout')), 4000)
-        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
       ]).catch(() =>
-        caches.match(event.request).then(
-          (cached) => cached || caches.match('/') || new Response('Offline', { status: 503 })
-        )
+        caches.match(event.request)
+          .then((cached) => cached || caches.match('/home') || caches.match('/'))
+          .then((cached) => cached || new Response('Offline', { status: 503 }))
       )
     );
     return;
   }
 
-  // 4. Static assets (JS, CSS, images, fonts) → stale-while-revalidate
-  //    Serve cache immediately, update in background for next visit.
+  // 6. Static assets — stale-while-revalidate
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
       const cached = await cache.match(event.request);
@@ -116,27 +163,53 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => cached);
-      // Return cached immediately if available, otherwise wait for network
       return cached || fetchPromise;
     })
   );
 });
 
-// ─── Messages from app ────────────────────────────────────────────────────────
+// ─── Messages ─────────────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
-  // Cache audio for offline playback
+  // Cache a single audio file
   if (event.data?.type === 'CACHE_AUDIO') {
     const { url } = event.data;
     caches.open(AUDIO_CACHE).then(async (cache) => {
       const existing = await cache.match(url);
-      if (existing) return; // already cached
-      fetch(url).then((response) => {
-        if (response.ok) cache.put(url, response);
-      }).catch(() => {});
+      if (existing) return;
+      fetch(url).then((r) => { if (r.ok) cache.put(url, r); }).catch(() => {});
     });
   }
 
-  // Force skip waiting (triggered when app detects new SW waiting)
+  // Pre-cache all song audio + images for full offline use
+  if (event.data?.type === 'CACHE_ALL_SONGS') {
+    const { songs } = event.data;
+    if (!Array.isArray(songs)) return;
+
+    caches.open(AUDIO_CACHE).then((audioCache) => {
+      caches.open(IMAGE_CACHE).then((imgCache) => {
+        songs.forEach((song) => {
+          // Cache audio
+          if (song.audio_url) {
+            audioCache.match(song.audio_url).then((existing) => {
+              if (!existing) {
+                fetch(song.audio_url).then((r) => { if (r.ok) audioCache.put(song.audio_url, r); }).catch(() => {});
+              }
+            });
+          }
+          // Cache cover image
+          if (song.image_url) {
+            imgCache.match(song.image_url).then((existing) => {
+              if (!existing) {
+                fetch(song.image_url).then((r) => { if (r.ok) imgCache.put(song.image_url, r); }).catch(() => {});
+              }
+            });
+          }
+        });
+      });
+    });
+  }
+
+  // Force update
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }

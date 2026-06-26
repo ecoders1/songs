@@ -4,11 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
+import { usePlayer } from '@/context/PlayerContext';
 import type { Artist, Category } from '@/lib/types';
 
 export default function HomePage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { isOffline } = usePlayer();
   const [selectedCategory, setSelectedCategory] = useState<Category>('new');
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +68,16 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Offline banner */}
+      {isOffline && (
+        <div className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium"
+          style={{ background: '#FFF3CD', color: '#856404' }}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01" strokeLinecap="round" />
+          </svg>
+          Offline — showing cached content
+        </div>
+      )}
       {/* Header */}
       <div
         className="sticky top-0 z-30 px-4 pt-12 pb-4"
