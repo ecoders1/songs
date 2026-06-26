@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import { usePlayer } from '@/context/PlayerContext';
+import { getArtistCache, setArtistCache } from '@/lib/dataCache';
 import type { Artist, Category } from '@/lib/types';
 
 export default function HomePage() {
@@ -12,11 +13,12 @@ export default function HomePage() {
   const { t } = useLanguage();
   const { isOffline, offlineArtists, cacheAllSongs } = usePlayer();
   const [selectedCategory, setSelectedCategory] = useState<Category>('new');
-  const [artists, setArtists] = useState<Artist[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [artists, setArtists] = useState<Artist[]>(() => getArtistCache('new') || []);
+  const [loading, setLoading] = useState(() => !getArtistCache('new'));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Artist[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const CATEGORIES: { key: Category; label: string; emoji: string }[] = [
     { key: 'new',    label: t.newSongs,    emoji: '🎵' },
@@ -26,19 +28,44 @@ export default function HomePage() {
   ];
 
   const fetchArtists = useCallback(async (cat: Category) => {
+    // Serve from cache instantly — no shimmer
+    const cached = getArtistCache(cat);
+    if (cached) {
+      setArtists(cached);
+      setLoading(false);
+      // Refresh in background silently
+      fetch(`/api/artists?category=${cat}`)
+        .then((r) => r.json())
+        .then(({ artists: fresh }) => {
+          if (fresh?.length) {
+            setArtistCache(cat, fresh);
+            setArtists(fresh);
+            cacheAllSongs([], fresh);
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
+    // No cache — show shimmer and fetch
     setLoading(true);
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
     try {
-      const res = await fetch(`/api/artists?category=${cat}`);
+      const res = await fetch(`/api/artists?category=${cat}`, { signal: abortRef.current.signal });
       const data = await res.json();
-      const list = data.artists || [];
-      // Use IndexedDB fallback if offline and API returned empty
+      const list: Artist[] = data.artists || [];
       const finalList = list.length > 0 ? list
-        : (isOffline ? offlineArtists.filter((a: Artist) => a.category === cat) : []);
+        : (isOffline ? offlineArtists.filter((a) => a.category === cat) : []);
+      if (list.length > 0) {
+        setArtistCache(cat, finalList);
+        cacheAllSongs([], finalList);
+      }
       setArtists(finalList);
-      // Persist fresh artist data for offline use
-      if (list.length > 0) cacheAllSongs([], list);
-    } catch {
-      const fallback = isOffline ? offlineArtists.filter((a: Artist) => a.category === cat) : [];
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      const fallback = isOffline ? offlineArtists.filter((a) => a.category === cat) : [];
       setArtists(fallback);
     } finally {
       setLoading(false);
@@ -47,36 +74,27 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchArtists(selectedCategory);
+    return () => abortRef.current?.abort();
   }, [selectedCategory, fetchArtists]);
 
   // Debounced search
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
+    if (!searchQuery.trim()) { setSearchResults([]); setIsSearching(false); return; }
     setIsSearching(true);
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/artists?search=${encodeURIComponent(searchQuery)}`);
         const data = await res.json();
         const list = data.artists || [];
-        // Offline fallback
         const finalList = list.length > 0 ? list
-          : offlineArtists.filter((a: Artist) =>
-              a.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
+          : offlineArtists.filter((a) => a.name.toLowerCase().includes(searchQuery.toLowerCase()));
         setSearchResults(finalList);
       } catch {
-        const fallback = offlineArtists.filter((a: Artist) =>
+        setSearchResults(offlineArtists.filter((a) =>
           a.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setSearchResults(fallback);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 400);
+        ));
+      } finally { setIsSearching(false); }
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, offlineArtists]);
 
@@ -84,7 +102,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Offline banner */}
       {isOffline && (
         <div className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium"
           style={{ background: '#FFF3CD', color: '#856404' }}>
@@ -94,12 +111,10 @@ export default function HomePage() {
           Offline — showing cached content
         </div>
       )}
-      {/* Header */}
-      <div
-        className="sticky top-0 z-30 px-4 pt-12 pb-4"
-        style={{ background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)' }}
-      >
-        {/* Logo row */}
+
+      {/* Sticky header */}
+      <div className="sticky top-0 z-30 px-4 pt-12 pb-4"
+        style={{ background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)' }}>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0"
             style={{ border: '2px solid rgba(212,175,55,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
@@ -111,59 +126,41 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Search bar */}
         <div className="relative">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2"
-            width="16" height="16" fill="none" stroke="#888" strokeWidth="2" viewBox="0 0 24 24"
-          >
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2"
+            width="16" height="16" fill="none" stroke="#888" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" strokeLinecap="round" />
           </svg>
-          <input
-            type="text"
-            placeholder={t.searchPlaceholder}
-            value={searchQuery}
+          <input type="text" placeholder={t.searchPlaceholder} value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-3 rounded-xl text-sm bg-white text-gray-800 outline-none"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-          />
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }} />
           {searchQuery && (
-            <button
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-              onClick={() => setSearchQuery('')}
-            >
-              ✕
-            </button>
+            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              onClick={() => setSearchQuery('')}>✕</button>
           )}
         </div>
       </div>
 
-      {/* Category buttons */}
+      {/* Category tabs */}
       {!searchQuery && (
         <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">
           {CATEGORIES.map((cat) => (
-            <button
-              key={cat.key}
-              onClick={() => setSelectedCategory(cat.key)}
-              className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
-              style={
-                selectedCategory === cat.key
-                  ? { background: '#D4AF37', color: '#1a1a2e' }
-                  : { background: '#f0f0f8', color: '#5a5a7a' }
-              }
-            >
+            <button key={cat.key} onClick={() => setSelectedCategory(cat.key)}
+              className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-150"
+              style={selectedCategory === cat.key
+                ? { background: '#D4AF37', color: '#1a1a2e' }
+                : { background: '#f0f0f8', color: '#5a5a7a' }}>
               {cat.emoji} {cat.label}
             </button>
           ))}
         </div>
       )}
 
-      {/* Section title */}
       <div className="px-4 py-2">
         <h2 className="font-semibold text-gray-800">
-          {searchQuery
-            ? `Results for "${searchQuery}"`
+          {searchQuery ? `Results for "${searchQuery}"`
             : CATEGORIES.find((c) => c.key === selectedCategory)?.label}
         </h2>
       </div>
@@ -193,17 +190,12 @@ export default function HomePage() {
         ) : (
           <div className="space-y-2 fade-in">
             {displayList.map((artist) => (
-              <button
-                key={artist.id}
+              <button key={artist.id}
                 onClick={() => router.push(`/artist/${artist.id}`)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-150 active:scale-98"
-                style={{ background: '#f8f8fc' }}
-              >
-                {/* Avatar */}
-                <div
-                  className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden"
-                  style={{ background: '#e8e8f8' }}
-                >
+                className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-100 active:scale-98"
+                style={{ background: '#f8f8fc' }}>
+                <div className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden"
+                  style={{ background: '#e8e8f8' }}>
                   {artist.image_url ? (
                     <img src={artist.image_url} alt={artist.name} className="w-full h-full object-cover" />
                   ) : (
@@ -211,8 +203,7 @@ export default function HomePage() {
                       {artist.is_group ? (
                         <>
                           <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87" strokeLinecap="round" />
-                          <circle cx="9" cy="8" r="4" />
-                          <circle cx="17" cy="8" r="4" />
+                          <circle cx="9" cy="8" r="4" /><circle cx="17" cy="8" r="4" />
                         </>
                       ) : (
                         <>
@@ -223,16 +214,12 @@ export default function HomePage() {
                     </svg>
                   )}
                 </div>
-
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-800 truncate">{artist.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {artist.is_group ? t.group : t.artist} · {artist.category}
                   </p>
                 </div>
-
-                {/* Arrow */}
                 <svg width="16" height="16" fill="none" stroke="#ccc" strokeWidth="2" viewBox="0 0 24 24">
                   <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

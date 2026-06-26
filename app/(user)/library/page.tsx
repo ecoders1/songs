@@ -1,51 +1,81 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlayer } from '@/context/PlayerContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { getSongCache, setSongCache } from '@/lib/dataCache';
 import type { Song } from '@/lib/types';
 
 export default function LibraryPage() {
   const router = useRouter();
   const { playSong, currentSong, isPlaying, isOffline, cachedSongIds, cacheAllSongs, downloadSong, offlineSongs } = usePlayer();
   const { t } = useLanguage();
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeLanguage, setActiveLanguage] = useState('all');
+  const [songs, setSongs] = useState<Song[]>(() => getSongCache('all') || []);
+  const [loading, setLoading] = useState(() => !getSongCache('all'));
   const [caching, setCaching] = useState(false);
   const [cacheMsg, setCacheMsg] = useState('');
+  const abortRef = useRef<AbortController | null>(null);
 
   const languages = ['all', 'oromo', 'english', 'amharic', 'sidama', 'arabic'];
 
   useEffect(() => {
-    const fetchSongs = async () => {
-      setLoading(true);
-      try {
-        const url = activeLanguage === 'all' ? '/api/songs' : `/api/songs?language=${activeLanguage}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const list: Song[] = data.songs || [];
-        // If offline and API returned empty, use IndexedDB data
-        const finalList = list.length > 0 ? list : (isOffline ? offlineSongs.filter(
-          s => activeLanguage === 'all' || s.language === activeLanguage
-        ) : []);
+    const lang = activeLanguage;
+
+    // Serve from cache instantly
+    const cached = getSongCache(lang);
+    if (cached) {
+      setSongs(cached);
+      setLoading(false);
+      // Background refresh
+      const url = lang === 'all' ? '/api/songs' : `/api/songs?language=${lang}`;
+      fetch(url)
+        .then((r) => r.json())
+        .then(({ songs: fresh }) => {
+          if (fresh?.length) {
+            setSongCache(lang, fresh);
+            setSongs(fresh);
+            cacheAllSongs(fresh);
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
+    // No cache — fetch with shimmer
+    setLoading(true);
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    const url = lang === 'all' ? '/api/songs' : `/api/songs?language=${lang}`;
+    fetch(url, { signal: abortRef.current.signal })
+      .then((r) => r.json())
+      .then(({ songs: list }) => {
+        const data: Song[] = list || [];
+        const finalList = data.length > 0 ? data
+          : (isOffline ? offlineSongs.filter(
+              (s) => lang === 'all' || s.language === lang
+            ) : []);
+        if (data.length > 0) {
+          setSongCache(lang, finalList);
+          cacheAllSongs(finalList);
+        }
         setSongs(finalList);
-        if (finalList.length > 0) cacheAllSongs(finalList);
-      } catch {
-        // Network error — use IndexedDB fallback
-        const fallback = isOffline ? offlineSongs.filter(
-          s => activeLanguage === 'all' || s.language === activeLanguage
-        ) : [];
+      })
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        const fallback = isOffline
+          ? offlineSongs.filter((s) => lang === 'all' || s.language === lang)
+          : [];
         setSongs(fallback);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSongs();
+      })
+      .finally(() => setLoading(false));
+
+    return () => abortRef.current?.abort();
   }, [activeLanguage, cacheAllSongs, isOffline, offlineSongs]);
 
-  const formatDuration = (sec: number | null) => {
+  const fmt = (sec: number | null) => {
     if (!sec) return '';
     return `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
   };
@@ -53,25 +83,18 @@ export default function LibraryPage() {
   const handleCacheAll = async () => {
     if (caching || isOffline) return;
     setCaching(true);
-    setCacheMsg('');
-    try {
-      let count = 0;
-      for (const song of songs) {
-        await downloadSong(song);
-        count++;
-      }
-      setCacheMsg(`✓ ${count} songs saved for offline`);
-    } catch {
-      setCacheMsg('Some songs could not be saved');
-    } finally {
-      setCaching(false);
-      setTimeout(() => setCacheMsg(''), 4000);
+    let count = 0;
+    for (const song of songs) {
+      await downloadSong(song);
+      count++;
     }
+    setCaching(false);
+    setCacheMsg(`✓ ${count} songs saved for offline`);
+    setTimeout(() => setCacheMsg(''), 4000);
   };
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Offline banner */}
       {isOffline && (
         <div className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium"
           style={{ background: '#FFF3CD', color: '#856404' }}>
@@ -86,50 +109,30 @@ export default function LibraryPage() {
       <div className="px-4 pt-12 pb-4" style={{ background: '#1a1a2e' }}>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold text-white">{t.library}</h1>
-          {/* Save all for offline button */}
           {!isOffline && songs.length > 0 && (
-            <button
-              onClick={handleCacheAll}
-              disabled={caching}
+            <button onClick={handleCacheAll} disabled={caching}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-              style={{ background: caching ? 'rgba(212,175,55,0.4)' : 'rgba(212,175,55,0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)' }}
-            >
+              style={{ background: caching ? 'rgba(212,175,55,0.4)' : 'rgba(212,175,55,0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)' }}>
               {caching ? (
-                <>
-                  <svg className="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/>
-                  </svg>
-                  Saving...
-                </>
+                <><svg className="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/></svg>Saving...</>
               ) : (
-                <>
-                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Save Offline
-                </>
+                <><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/></svg>Save Offline</>
               )}
             </button>
           )}
         </div>
 
-        {cacheMsg && (
-          <p className="text-xs mb-2" style={{ color: '#D4AF37' }}>{cacheMsg}</p>
-        )}
+        {cacheMsg && <p className="text-xs mb-2" style={{ color: '#D4AF37' }}>{cacheMsg}</p>}
 
-        {/* Language filter */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {languages.map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setActiveLanguage(lang)}
+            <button key={lang} onClick={() => setActiveLanguage(lang)}
               className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all"
-              style={
-                activeLanguage === lang
-                  ? { background: '#D4AF37', color: '#1a1a2e' }
-                  : { background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }
-              }
-            >
+              style={activeLanguage === lang
+                ? { background: '#D4AF37', color: '#1a1a2e' }
+                : { background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
               {lang === 'all' ? 'All Songs' : lang}
             </button>
           ))}
@@ -163,9 +166,7 @@ export default function LibraryPage() {
             <p className="text-xs text-gray-400 mb-3">
               {songs.length} songs
               {cachedSongIds.size > 0 && (
-                <span className="ml-2" style={{ color: '#D4AF37' }}>
-                  · {cachedSongIds.size} saved offline
-                </span>
+                <span className="ml-2" style={{ color: '#D4AF37' }}>· {cachedSongIds.size} saved offline</span>
               )}
             </p>
             <div className="space-y-1 fade-in">
@@ -173,17 +174,12 @@ export default function LibraryPage() {
                 const isActive = currentSong?.id === song.id;
                 const isCached = cachedSongIds.has(song.id);
                 return (
-                  <button
-                    key={song.id}
+                  <button key={song.id}
                     onClick={() => { playSong(song, songs); router.push('/player'); }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all"
-                    style={{ background: isActive ? '#FFF8E7' : 'transparent' }}
-                  >
-                    {/* Cover / icon */}
-                    <div
-                      className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden relative"
-                      style={{ background: isActive ? '#D4AF37' : '#f0f0f8' }}
-                    >
+                    className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-100"
+                    style={{ background: isActive ? '#FFF8E7' : 'transparent' }}>
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden relative"
+                      style={{ background: isActive ? '#D4AF37' : '#f0f0f8' }}>
                       {song.image_url ? (
                         <img src={song.image_url} alt={song.title} className="w-full h-full object-cover" />
                       ) : (
@@ -192,14 +188,11 @@ export default function LibraryPage() {
                           <circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
                         </svg>
                       )}
-                      {/* Cached indicator dot */}
                       {isCached && (
                         <div className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-white"
                           style={{ background: '#22c55e' }} />
                       )}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className={`font-medium text-sm truncate ${isActive ? 'text-yellow-600' : 'text-gray-800'}`}>
                         {song.title}
@@ -208,8 +201,6 @@ export default function LibraryPage() {
                         {song.artist?.name} · Track {song.track_number}
                       </p>
                     </div>
-
-                    {/* Playing animation or duration */}
                     {isActive && isPlaying ? (
                       <div className="flex gap-0.5 items-end h-4">
                         {[...Array(3)].map((_, i) => (
@@ -220,7 +211,7 @@ export default function LibraryPage() {
                       </div>
                     ) : (
                       song.duration && (
-                        <span className="text-xs text-gray-400">{formatDuration(song.duration)}</span>
+                        <span className="text-xs text-gray-400">{fmt(song.duration)}</span>
                       )
                     )}
                   </button>
