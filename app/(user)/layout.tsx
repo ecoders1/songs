@@ -60,7 +60,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <main
-        className="flex-1 overflow-y-auto"
+        className="flex-1 overflow-y-auto slide-up"
         style={{ paddingBottom: currentSong ? '132px' : '72px' }}
       >
         {children}

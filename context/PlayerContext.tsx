@@ -117,7 +117,32 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     loadFromIDB<Artist>('artists').then((artists) => {
       if (artists.length > 0) setOfflineArtists(artists);
     });
+
+    // Restore last played song and volume from sessionStorage
+    try {
+      const savedSong = sessionStorage.getItem('currentSong');
+      const savedVolume = sessionStorage.getItem('volume');
+      if (savedSong) {
+        const song: Song = JSON.parse(savedSong);
+        setCurrentSong(song);
+      }
+      if (savedVolume) {
+        const vol = parseFloat(savedVolume);
+        setVolumeState(vol);
+      }
+    } catch { /* ignore */ }
   }, []);
+
+  // ── Persist current song + volume to sessionStorage ────────────────────────
+  useEffect(() => {
+    if (currentSong) {
+      try { sessionStorage.setItem('currentSong', JSON.stringify(currentSong)); } catch { /* ignore */ }
+    }
+  }, [currentSong]);
+
+  useEffect(() => {
+    try { sessionStorage.setItem('volume', String(volume)); } catch { /* ignore */ }
+  }, [volume]);
 
   // ── Audio element setup ──────────────────────────────────────────────────
   useEffect(() => {

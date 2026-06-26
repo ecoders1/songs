@@ -16,12 +16,37 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  /* Prevent white flash on navigation */
+  background: #1a1a2e;
+}
+
 body {
   background: var(--white);
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
+  /* Hardware acceleration for smooth scrolling */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Instant page transitions — no white flash */
+main {
+  will-change: contents;
+}
+
+/* Fast tap response on mobile */
+button, a {
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+/* Prevent blue highlight on tap */
+* {
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  -webkit-touch-callout: none;
 }
 
 /* Scrollbar */
@@ -44,7 +69,7 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Range input styling */
+/* Range input */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -65,7 +90,7 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
 }
 
-/* Shimmer animation for loading */
+/* Shimmer loading */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -77,19 +102,45 @@ input[type="range"]::-webkit-slider-thumb {
   animation: shimmer 1.5s infinite;
 }
 
+/* Page entry animation */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .fade-in {
-  animation: fadeIn 0.3s ease forwards;
+  animation: fadeIn 0.25s ease forwards;
 }
 
+/* Page slide-in for smooth navigation feel */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+  animation: slideUp 0.2s ease forwards;
+}
+
+/* Spin */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
 .spin {
   animation: spin 1s linear infinite;
+}
+
+/* Active scale for buttons */
+.active\:scale-98:active {
+  transform: scale(0.98);
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Prevent layout shift on image load */
+img {
+  display: block;
 }

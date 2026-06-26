@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#D4AF37",
+  themeColor: "#1a1a2e",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -38,6 +38,11 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        {/* Preload critical assets for instant load */}
+        <link rel="preload" href="/icons/icon.svg" as="image" type="image/svg+xml" />
+        {/* DNS prefetch for Supabase */}
+        <link rel="dns-prefetch" href="https://lzznufriodxghmksokts.supabase.co" />
+        <link rel="preconnect" href="https://lzznufriodxghmksokts.supabase.co" crossOrigin="anonymous" />
       </head>
       <body className="min-h-full flex flex-col bg-white">
         <LanguageProvider>
