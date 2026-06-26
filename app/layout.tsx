@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PlayerProvider } from "@/context/PlayerContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 export const metadata: Metadata = {
   title: "Apostolic Songs Afaan Oromo",
@@ -12,8 +13,8 @@ export const metadata: Metadata = {
     title: "Apostolic Songs",
   },
   icons: {
-    icon: "/icons/church-logo.png",
-    apple: "/icons/church-logo.png",
+    icon: "/icons/icon.svg",
+    apple: "/icons/icon.svg",
   },
 };
 
@@ -39,7 +40,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className="min-h-full flex flex-col bg-white">
-        <PlayerProvider>{children}</PlayerProvider>
+        <LanguageProvider>
+          <PlayerProvider>{children}</PlayerProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

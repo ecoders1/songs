@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdminToken } from '@/lib/auth';
 
+const ALLOWED_BUCKETS = ['audio', 'images'];
+
+async function ensureBucketExists(supabase: ReturnType<typeof createClient>, bucket: string) {
+  // Check if bucket exists
+  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+  if (listError) throw new Error(`Failed to list buckets: ${listError.message}`);
+
+  const exists = buckets?.some((b: { name: string }) => b.name === bucket);
+  if (!exists) {
+    const { error: createError } = await supabase.storage.createBucket(bucket, {
+      public: true,
+      allowedMimeTypes: bucket === 'audio'
+        ? ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac', 'audio/flac']
+        : ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'],
+      fileSizeLimit: bucket === 'audio' ? 52428800 : 10485760, // 50MB audio, 10MB images
+    });
+    if (createError) throw new Error(`Failed to create bucket "${bucket}": ${createError.message}`);
+  }
+}
+
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('admin_token')?.value;
   if (!token || !(await verifyAdminToken(token))) {
@@ -15,10 +35,21 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get('file') as File | null;
-  const bucket = formData.get('bucket') as string || 'audio';
+  const bucket = (formData.get('bucket') as string) || 'audio';
 
   if (!file) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  }
+
+  if (!ALLOWED_BUCKETS.includes(bucket)) {
+    return NextResponse.json({ error: `Invalid bucket. Allowed: ${ALLOWED_BUCKETS.join(', ')}` }, { status: 400 });
+  }
+
+  try {
+    // Auto-create bucket if it doesn't exist
+    await ensureBucketExists(supabase, bucket);
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Bucket setup failed' }, { status: 500 });
   }
 
   const ext = file.name.split('.').pop();

@@ -11,7 +11,31 @@ export default function SplashScreen() {
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).then((reg) => {
+        // Check for updates every time the page loads
+        reg.update().catch(() => {});
+
+        // When a new SW is waiting, activate it immediately and reload
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New SW ready — tell it to skip waiting, then reload
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+      }).catch(() => {});
+
+      // Reload once the new SW has taken control
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
     }
 
     const interval = setInterval(() => {
@@ -37,20 +61,20 @@ export default function SplashScreen() {
           style={{ width: size, height: size, border: `1px solid rgba(212,175,55,${0.06 + i * 0.05})` }} />
       ))}
 
-      {/* Church logo */}
-      <div className="relative mb-5 z-10">
-        <div
-          className="w-32 h-32 rounded-full overflow-hidden flex items-center justify-center"
-          style={{ boxShadow: '0 0 50px rgba(212,175,55,0.35), 0 16px 40px rgba(0,0,0,0.5)', border: '3px solid rgba(212,175,55,0.5)' }}
-        >
-          <Image
-            src="/icons/church-logo.png"
-            alt="Apostolic Songs"
-            width={128}
-            height={128}
-            priority
-            className="w-full h-full object-cover"
-          />
+        {/* Splash logo */}
+        <div className="relative mb-5 z-10">
+          <div
+            className="w-32 h-32 rounded-full overflow-hidden flex items-center justify-center"
+            style={{ boxShadow: '0 0 50px rgba(212,175,55,0.35), 0 16px 40px rgba(0,0,0,0.5)', border: '3px solid rgba(212,175,55,0.5)' }}
+          >
+            <Image
+              src="/icons/icon.svg"
+              alt="Apostolic Songs"
+              width={128}
+              height={128}
+              priority
+              className="w-full h-full object-cover"
+            />
         </div>
         {/* Pulse ring */}
         <div className="absolute inset-0 rounded-full"

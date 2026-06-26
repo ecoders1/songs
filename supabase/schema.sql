@@ -53,20 +53,43 @@ create index if not exists songs_language_idx on songs(language);
 create index if not exists artists_category_idx on artists(category);
 create index if not exists playlist_songs_playlist_id_idx on playlist_songs(playlist_id);
 
--- Storage buckets (run in Supabase dashboard > Storage)
--- Create bucket: "audio" (public)
--- Create bucket: "images" (public)
+-- Storage buckets (safe to re-run, skips if already exists)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values
+  ('audio',  'audio',  true, 52428800, array['audio/mpeg','audio/mp3','audio/wav','audio/ogg','audio/m4a','audio/aac','audio/flac']),
+  ('images', 'images', true, 10485760, array['image/jpeg','image/png','image/webp','image/gif','image/svg+xml'])
+on conflict (id) do nothing;
+
+-- Storage bucket policies (drop first so re-runs don't fail)
+drop policy if exists "Public read audio"          on storage.objects;
+drop policy if exists "Public read images"         on storage.objects;
+drop policy if exists "Service role upload audio"  on storage.objects;
+drop policy if exists "Service role upload images" on storage.objects;
+drop policy if exists "Service role delete audio"  on storage.objects;
+drop policy if exists "Service role delete images" on storage.objects;
+
+create policy "Public read audio"          on storage.objects for select using (bucket_id = 'audio');
+create policy "Public read images"         on storage.objects for select using (bucket_id = 'images');
+create policy "Service role upload audio"  on storage.objects for insert with check (bucket_id = 'audio');
+create policy "Service role upload images" on storage.objects for insert with check (bucket_id = 'images');
+create policy "Service role delete audio"  on storage.objects for delete using (bucket_id = 'audio');
+create policy "Service role delete images" on storage.objects for delete using (bucket_id = 'images');
 
 -- Row Level Security
-alter table artists enable row level security;
-alter table songs enable row level security;
-alter table playlists enable row level security;
+alter table artists      enable row level security;
+alter table songs        enable row level security;
+alter table playlists    enable row level security;
 alter table playlist_songs enable row level security;
 
--- Public read access for all
-create policy "Public read artists" on artists for select using (true);
-create policy "Public read songs" on songs for select using (true);
-create policy "Public read playlists" on playlists for select using (true);
+-- Table policies (drop first so re-runs don't fail)
+drop policy if exists "Public read artists"        on artists;
+drop policy if exists "Public read songs"          on songs;
+drop policy if exists "Public read playlists"      on playlists;
+drop policy if exists "Public read playlist_songs" on playlist_songs;
+
+create policy "Public read artists"        on artists        for select using (true);
+create policy "Public read songs"          on songs          for select using (true);
+create policy "Public read playlists"      on playlists      for select using (true);
 create policy "Public read playlist_songs" on playlist_songs for select using (true);
 
 -- Full access via service role (admin operations go through API with service key)

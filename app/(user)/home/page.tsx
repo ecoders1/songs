@@ -3,23 +3,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useLanguage } from '@/context/LanguageContext';
 import type { Artist, Category } from '@/lib/types';
-
-const CATEGORIES: { key: Category; label: string; emoji: string }[] = [
-  { key: 'new', label: 'New Songs', emoji: '🎵' },
-  { key: 'group', label: 'Group Songs', emoji: '👥' },
-  { key: 'single', label: 'Single Songs', emoji: '🎤' },
-  { key: 'old', label: 'Old Songs', emoji: '📀' },
-];
 
 export default function HomePage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<Category>('new');
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Artist[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const CATEGORIES: { key: Category; label: string; emoji: string }[] = [
+    { key: 'new',    label: t.newSongs,    emoji: '🎵' },
+    { key: 'group',  label: t.groupSongs,  emoji: '👥' },
+    { key: 'single', label: t.singleSongs, emoji: '🎤' },
+    { key: 'old',    label: t.oldSongs,    emoji: '📀' },
+  ];
 
   const fetchArtists = useCallback(async (cat: Category) => {
     setLoading(true);
@@ -73,7 +75,7 @@ export default function HomePage() {
         <div className="flex items-center gap-3 mb-4">
           <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0"
             style={{ border: '2px solid rgba(212,175,55,0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-            <Image src="/icons/church-logo.png" alt="Logo" width={44} height={44} className="w-full h-full object-cover" />
+            <Image src="/icons/icon.svg" alt="Logo" width={44} height={44} className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-white font-bold text-base leading-tight">Apostolic Songs</h1>
@@ -92,7 +94,7 @@ export default function HomePage() {
           </svg>
           <input
             type="text"
-            placeholder="Search songs, artists, groups..."
+            placeholder={t.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-3 rounded-xl text-sm bg-white text-gray-800 outline-none"
@@ -158,7 +160,7 @@ export default function HomePage() {
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" strokeLinecap="round" />
             </svg>
-            <p>No artists found</p>
+            <p>{t.noArtistsFound}</p>
           </div>
         ) : (
           <div className="space-y-2 fade-in">
@@ -198,7 +200,7 @@ export default function HomePage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-800 truncate">{artist.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {artist.is_group ? 'Group' : 'Artist'} · {artist.category}
+                    {artist.is_group ? t.group : t.artist} · {artist.category}
                   </p>
                 </div>
 

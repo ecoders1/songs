@@ -47,6 +47,7 @@ body {
 /* Range input styling */
 input[type="range"] {
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   height: 4px;
   border-radius: 2px;
@@ -56,6 +57,7 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 14px;
   height: 14px;
   border-radius: 50%;

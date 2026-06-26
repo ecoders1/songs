@@ -65,7 +65,7 @@ export default function PWAInstallBanner() {
           className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
           style={{ background: '#D4AF37' }}
         >
-          <img src="/icons/church-logo.png" alt="Apostolic Songs" className="w-full h-full object-cover" />
+          <img src="/icons/icon.svg" alt="Apostolic Songs" className="w-full h-full object-cover" />
         </div>
 
         {/* Text */}

@@ -119,20 +119,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   const clearQueue = useCallback(() => setQueue([]), []);
 
+  // Download = cache to SW for offline playback only, NOT save to device storage
   const downloadSong = useCallback(async (song: Song) => {
     try {
-      const response = await fetch(song.audio_url);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${song.title}.mp3`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Tell service worker to cache this audio for offline
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'CACHE_AUDIO', url: song.audio_url });
+      }
+      // Also pre-cache via Cache API directly as fallback
+      if ('caches' in window) {
+        const cache = await caches.open('faarfannaa-audio-v1');
+        const existing = await cache.match(song.audio_url);
+        if (!existing) {
+          const response = await fetch(song.audio_url);
+          if (response.ok) await cache.put(song.audio_url, response);
+        }
+      }
     } catch {
-      console.error('Download failed');
+      console.error('Cache failed');
     }
   }, []);
 

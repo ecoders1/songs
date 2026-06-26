@@ -1,28 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-type AppLanguage = 'oromo' | 'english' | 'amharic' | 'sidama' | 'arabic';
+import { useLanguage, UI_TEXT, type AppLanguage } from '@/context/LanguageContext';
 
 const LANGUAGES: { key: AppLanguage; label: string; native: string }[] = [
-  { key: 'oromo', label: 'Afaan Oromoo', native: 'Afaan Oromoo' },
-  { key: 'english', label: 'English', native: 'English' },
-  { key: 'amharic', label: 'Amharic', native: 'አማርኛ' },
-  { key: 'sidama', label: 'Sidama', native: 'Sidaamu Afoo' },
-  { key: 'arabic', label: 'Arabic', native: 'العربية' },
+  { key: 'oromo',   label: 'Afaan Oromoo', native: 'Afaan Oromoo' },
+  { key: 'english', label: 'English',      native: 'English' },
+  { key: 'amharic', label: 'Amharic',      native: 'አማርኛ' },
+  { key: 'sidama',  label: 'Sidama',       native: 'Sidaamu Afoo' },
+  { key: 'arabic',  label: 'Arabic',       native: 'العربية' },
 ];
 
 export default function SettingsPage() {
-  const [appLanguage, setAppLanguage] = useState<AppLanguage>('oromo');
+  const { language, setLanguage, t } = useLanguage();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [pwaInstallable, setPwaInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('app_language') as AppLanguage | null;
-    if (saved) setAppLanguage(saved);
-
-    // PWA install prompt
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -31,11 +26,6 @@ export default function SettingsPage() {
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
-
-  const handleLanguageChange = (lang: AppLanguage) => {
-    setAppLanguage(lang);
-    localStorage.setItem('app_language', lang);
-  };
 
   const handleInstallPWA = async () => {
     if (!deferredPrompt) return;
@@ -62,8 +52,10 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="px-4 pt-12 pb-5" style={{ background: '#1a1a2e' }}>
-        <h1 className="text-xl font-bold text-white">Settings</h1>
-        <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Customize your experience</p>
+        <h1 className="text-xl font-bold text-white">{t.settings}</h1>
+        <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {UI_TEXT['english'].settings} / {UI_TEXT['amharic'].settings}
+        </p>
       </div>
 
       <div className="px-4 pt-6 space-y-5">
@@ -73,12 +65,12 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#D4AF37' }}>
                 <svg width="20" height="20" fill="#1a1a2e" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
+                  <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
                 </svg>
               </div>
               <div>
-                <p className="font-semibold text-white">Install App</p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Add to home screen for offline use</p>
+                <p className="font-semibold text-white">{t.installApp}</p>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{t.installDesc}</p>
               </div>
             </div>
             <button
@@ -86,22 +78,22 @@ export default function SettingsPage() {
               className="w-full py-2.5 rounded-xl text-sm font-semibold"
               style={{ background: '#D4AF37', color: '#1a1a2e' }}
             >
-              Install Now
+              {t.installNow}
             </button>
           </div>
         )}
 
-        {/* Language */}
+        {/* Language — single tap changes whole app */}
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">App Language</h2>
-          <div className="space-y-1 rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e8f0' }}>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t.appLanguage}</h2>
+          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e8f0' }}>
             {LANGUAGES.map((lang, i) => (
               <button
                 key={lang.key}
-                onClick={() => handleLanguageChange(lang.key)}
+                onClick={() => setLanguage(lang.key)}
                 className="w-full flex items-center justify-between px-4 py-3.5 text-left transition-colors"
                 style={{
-                  background: appLanguage === lang.key ? '#FFF8E7' : 'white',
+                  background: language === lang.key ? '#FFF8E7' : 'white',
                   borderBottom: i < LANGUAGES.length - 1 ? '1px solid #f0f0f8' : 'none',
                 }}
               >
@@ -109,7 +101,7 @@ export default function SettingsPage() {
                   <p className="font-medium text-gray-800">{lang.label}</p>
                   <p className="text-xs text-gray-400">{lang.native}</p>
                 </div>
-                {appLanguage === lang.key && (
+                {language === lang.key && (
                   <svg width="18" height="18" fill="none" stroke="#D4AF37" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -121,12 +113,12 @@ export default function SettingsPage() {
 
         {/* Notifications */}
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Notifications</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t.notifications}</h2>
           <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e8f0' }}>
             <div className="flex items-center justify-between px-4 py-3.5">
               <div>
-                <p className="font-medium text-gray-800">New Songs</p>
-                <p className="text-xs text-gray-400">Get notified when new songs are added</p>
+                <p className="font-medium text-gray-800">{t.newSongs}</p>
+                <p className="text-xs text-gray-400">{t.newSongsNotif}</p>
               </div>
               <button
                 onClick={handleNotificationToggle}
@@ -143,14 +135,63 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Contact */}
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t.contact}</h2>
+          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e8f0' }}>
+            {/* Telegram personal */}
+            <a
+              href="https://t.me/milkibn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-gray-50"
+              style={{ borderBottom: '1px solid #f0f0f8' }}
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#0088cc' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.697l-2.95-.924c-.64-.203-.654-.64.136-.948l11.526-4.445c.534-.194 1.001.13.37.868z"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-800">Telegram</p>
+                <p className="text-xs text-gray-400">@milkibn</p>
+              </div>
+              <svg width="16" height="16" fill="none" stroke="#ccc" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+
+            {/* Telegram channel */}
+            <a
+              href="https://t.me/aposotolicchurch"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-gray-50"
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#005fa3' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.697l-2.95-.924c-.64-.203-.654-.64.136-.948l11.526-4.445c.534-.194 1.001.13.37.868z"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-800">{t.telegramChannel}</p>
+                <p className="text-xs text-gray-400">@aposotolicchurch</p>
+              </div>
+              <svg width="16" height="16" fill="none" stroke="#ccc" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
         {/* About */}
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">About</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t.about}</h2>
           <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e8f0' }}>
             {[
-              { label: 'App Name', value: 'Faarfannaa' },
-              { label: 'Version', value: '1.0.0' },
-              { label: 'Developer', value: 'Apostolic Church' },
+              { label: t.appName,   value: 'Faarfannaa' },
+              { label: t.version,   value: '1.0.0' },
+              { label: t.developer, value: 'Apostolic Church' },
             ].map((item, i, arr) => (
               <div
                 key={item.label}
@@ -164,7 +205,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="pb-4 text-center">
+        <div className="pb-6 text-center space-y-1">
           <p className="text-xs text-gray-300">Apostolic Songs Afaan Oromoo</p>
           <p className="text-xs text-gray-300">Made with ❤️ for the Church</p>
         </div>
