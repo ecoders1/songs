@@ -21,14 +21,23 @@ export default function AdminLoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+
+      let data: { error?: string; success?: boolean } = {};
+      try {
+        data = await res.json();
+      } catch {
+        // Response wasn't JSON — show status
+        setError(`Server error (${res.status}). Check Vercel environment variables.`);
+        return;
+      }
+
       if (!res.ok) {
-        setError(data.error || 'Login failed');
+        setError(data.error || `Login failed (${res.status})`);
       } else {
         router.push('/admin/dashboard');
       }
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(`Connection failed — ${err instanceof Error ? err.message : 'check your internet'}`);
     } finally {
       setLoading(false);
     }
