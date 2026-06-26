@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { verifyAdminToken } from '@/lib/auth';
 
 const ALLOWED_BUCKETS = ['audio', 'images'];
 
-async function ensureBucketExists(supabase: ReturnType<typeof createClient>, bucket: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function ensureBucketExists(supabase: SupabaseClient<any>, bucket: string) {
   // Check if bucket exists
   const { data: buckets, error: listError } = await supabase.storage.listBuckets();
   if (listError) throw new Error(`Failed to list buckets: ${listError.message}`);
