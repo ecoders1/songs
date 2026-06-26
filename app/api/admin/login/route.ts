@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
   response.cookies.set('admin_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',   // 'lax' works with same-site fetch; 'strict' blocks it on Vercel
     maxAge: 60 * 60 * 8,
     path: '/',
   });

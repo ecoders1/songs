@@ -14,7 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setChecking(false);
       return;
     }
-    fetch('/api/admin/verify')
+    fetch('/api/admin/verify', { credentials: 'include' })
       .then((res) => {
         if (!res.ok) router.push('/admin/login');
         else setChecking(false);
@@ -33,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const handleLogout = async () => {
-    await fetch('/api/admin/verify', { method: 'DELETE' });
+    await fetch('/api/admin/verify', { method: 'DELETE', credentials: 'include' });
     router.push('/admin/login');
   };
 

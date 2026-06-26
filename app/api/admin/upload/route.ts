@@ -26,13 +26,20 @@ async function ensureBucketExists(supabase: SupabaseClient<any>, bucket: string)
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('admin_token')?.value;
   if (!token || !(await verifyAdminToken(token))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized — please log in again' }, { status: 401 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceKey) {
+    return NextResponse.json(
+      { error: 'Missing Supabase env vars on server. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel dashboard.' },
+      { status: 500 }
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey);
 
   const formData = await req.formData();
   const file = formData.get('file') as File | null;
