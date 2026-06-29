@@ -30,9 +30,24 @@ export default function InstallPrompt() {
       // iOS — show instruction sheet
       setTimeout(() => setShowIOSGuide(true), 600);
     } else {
-      // Android/Chrome — show full-screen card
-      // The native prompt fires when user taps the Install button
-      setTimeout(() => setShow(true), 600);
+      // Android/Chrome — immediately fire native browser install prompt
+      // This pops the "Add to Home Screen" dialog with zero extra taps.
+      // If prompt isn't available yet, fall back to showing the card.
+      setTimeout(async () => {
+        const outcome = await triggerInstall();
+        if (outcome === 'unavailable') {
+          // Prompt not ready — show the full-screen card as fallback
+          setShow(true);
+        } else if (outcome === 'dismissed') {
+          // User dismissed native prompt — show card so they can try again
+          setShow(true);
+        } else {
+          // accepted — installed directly, show success briefly
+          setInstalled(true);
+          setShow(true);
+          setTimeout(() => setShow(false), 2500);
+        }
+      }, 600);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
