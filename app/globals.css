@@ -1,85 +1,59 @@
 @import "tailwindcss";
 
 :root {
-  --gold: #D4AF37;
-  --gold-light: #F0D060;
-  --gold-dark: #B8960C;
-  --soft-blue: #EBF4FB;
-  --white: #ffffff;
-  --text-primary: #1a1a2e;
-  --text-secondary: #5a5a7a;
-  --border: #e8e8f0;
+  --gold:        #D4AF37;
+  --gold-light:  #F0D060;
+  --gold-dark:   #B8960C;
+  --navy:        #1a1a2e;
+  --navy-mid:    #16213e;
+  --bg:          #f2f2f7;
+  --surface:     #ffffff;
+  --border:      #e8e8f0;
+  --text-1:      #111827;
+  --text-2:      #6b7280;
+  --text-3:      #9ca3af;
 }
 
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-html {
-  /* Prevent white flash on navigation */
-  background: #1a1a2e;
-}
+html { background: var(--navy); }   /* prevent white flash between pages */
 
 body {
-  background: var(--white);
-  color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
-  /* Hardware acceleration for smooth scrolling */
   -webkit-overflow-scrolling: touch;
 }
 
-/* Instant page transitions — no white flash */
-main {
-  will-change: contents;
-}
+main { will-change: contents; }
 
-/* Fast tap response on mobile */
-button, a {
-  touch-action: manipulation;
-  cursor: pointer;
-}
+button, a { touch-action: manipulation; cursor: pointer; }
 
-/* Prevent blue highlight on tap */
 * {
   -webkit-tap-highlight-color: rgba(0,0,0,0);
   -webkit-touch-callout: none;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d0d0e0; border-radius: 2px; }
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 3px; height: 3px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: #d0d0e0; border-radius: 99px; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Gold gradient */
-.gold-gradient {
-  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold-dark) 100%);
-}
-
-/* Smooth transitions */
-.transition-smooth {
-  transition: all 0.2s ease;
-}
-
-/* Bottom nav safe area */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* Range input */
+/* ── Range input ───────────────────────────────────────────────────────────── */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 4px;
-  border-radius: 2px;
+  border-radius: 99px;
   background: var(--border);
   outline: none;
 }
-
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -90,63 +64,83 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
 }
 
-/* Shimmer loading */
+/* ── Frosted glass helper ──────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+.glass-dark {
+  background: rgba(26, 26, 46, 0.82);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* ── Shimmer loading skeleton ──────────────────────────────────────────────── */
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
-
 .shimmer {
-  background: linear-gradient(90deg, #f0f0f4 25%, #e4e4ea 50%, #f0f0f4 75%);
+  background: linear-gradient(90deg, #f0f0f5 25%, #e6e6ec 50%, #f0f0f5 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
+  animation: shimmer 1.5s ease-in-out infinite;
 }
 
-/* Playing bars pulse */
-@keyframes pulse {
-  from { transform: scaleY(0.5); }
-  to   { transform: scaleY(1.2); }
-}
-
-/* Page entry animation */
+/* ── Animations ────────────────────────────────────────────────────────────── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
+.fade-in { animation: fadeIn 0.22s ease forwards; }
 
-.fade-in {
-  animation: fadeIn 0.25s ease forwards;
-}
-
-/* Page slide-in for smooth navigation feel */
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.slide-up { animation: slideUp 0.18s ease forwards; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; }
+
+@keyframes pulseScale {
+  0%, 100% { transform: scale(1);    opacity: 1;   }
+  50%       { transform: scale(1.15); opacity: 0.6; }
 }
 
-.slide-up {
-  animation: slideUp 0.2s ease forwards;
+/* Breathing dot used in the online/offline pill */
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6);  }
+  50%       { box-shadow: 0 0 0 4px rgba(34,197,94,0);  }
+}
+.dot-online {
+  animation: breathe 2.2s ease-in-out infinite;
 }
 
-/* Spin */
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* ── Utility ───────────────────────────────────────────────────────────────── */
+.gold-gradient {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold-dark) 100%);
 }
 
-.spin {
-  animation: spin 1s linear infinite;
+.active\:scale-98:active { transform: scale(0.98); }
+.active\:scale-95:active { transform: scale(0.95); }
+
+img { display: block; }
+
+/* ── Card shadow system ────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+.card-hover:active {
+  box-shadow: 0 0 0 rgba(0,0,0,0);
+  transform: scale(0.985);
 }
 
-/* Active scale for buttons */
-.active\:scale-98:active {
-  transform: scale(0.98);
-}
-
-/* Scrollbar hide utility */
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Prevent layout shift on image load */
-img {
-  display: block;
+/* ── Admin shimmer ─────────────────────────────────────────────────────────── */
+@keyframes pulse-admin {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.4; }
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import { usePlayer } from '@/context/PlayerContext';
+import { useUser } from '@/context/UserContext';
 import { getArtistCache, setArtistCache } from '@/lib/dataCache';
 import type { Artist, Category } from '@/lib/types';
 
@@ -12,13 +13,17 @@ export default function HomePage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { isOffline, offlineArtists, cacheAllSongs } = usePlayer();
+  const { user } = useUser();
   const [selectedCategory, setSelectedCategory] = useState<Category>('new');
   const [artists, setArtists] = useState<Artist[]>(() => getArtistCache('new') || []);
   const [loading, setLoading] = useState(() => !getArtistCache('new'));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Artist[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [showLockedMsg, setShowLockedMsg] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  void user; // used for auth guard in layout
 
   const CATEGORIES: { key: Category; label: string; emoji: string }[] = [
     { key: 'new',    label: t.newSongs,    emoji: '🎵' },
@@ -26,6 +31,11 @@ export default function HomePage() {
     { key: 'single', label: t.singleSongs, emoji: '🎤' },
     { key: 'old',    label: t.oldSongs,    emoji: '📀' },
   ];
+
+  const handleLockedClick = () => {
+    setShowLockedMsg(true);
+    setTimeout(() => setShowLockedMsg(false), 3000);
+  };
 
   const fetchArtists = useCallback(async (cat: Category) => {
     const cached = getArtistCache(cat);
@@ -71,7 +81,8 @@ export default function HomePage() {
         setSearchResults(list.length > 0 ? list : offlineArtists.filter((a) =>
           a.name.toLowerCase().includes(searchQuery.toLowerCase())));
       } catch {
-        setSearchResults(offlineArtists.filter((a) => a.name.toLowerCase().includes(searchQuery.toLowerCase())));
+        setSearchResults(offlineArtists.filter((a) =>
+          a.name.toLowerCase().includes(searchQuery.toLowerCase())));
       } finally { setIsSearching(false); }
     }, 300);
     return () => clearTimeout(timer);
@@ -80,142 +91,248 @@ export default function HomePage() {
   const displayList = searchQuery.trim() ? searchResults : artists;
 
   return (
-    <div className="min-h-screen" style={{ background: '#f4f4f8' }}>
-      {/* ── Sticky Header ── */}
-      <div className="sticky top-0 z-30 px-4 pt-12 pb-3"
-        style={{ background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
 
-        {/* Logo + offline pill */}
+      {/* ── Sticky frosted-glass header ────────────────────────────────────── */}
+      <div
+        className="sticky top-0 z-30 px-4 pt-11 pb-3"
+        style={{
+          background: 'linear-gradient(175deg, #1a1a2e 0%, #16213e 100%)',
+          /* subtle bottom fade so content slides under cleanly */
+          WebkitMaskImage: 'linear-gradient(to bottom, black 88%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, black 88%, transparent 100%)',
+        }}
+      >
+        {/* Row 1 — Logo · lock · status pill */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
-              style={{ border: '2px solid rgba(212,175,55,0.5)' }}>
-              <Image src="/icons/icon.svg" alt="Logo" width={40} height={40} className="w-full h-full object-cover" />
+
+          {/* Logo */}
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
+              style={{ border: '1.5px solid rgba(212,175,55,0.45)', boxShadow: '0 0 12px rgba(212,175,55,0.15)' }}
+            >
+              <Image src="/icons/icon.png" alt="Logo" width={36} height={36} className="w-full h-full object-cover" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-sm leading-tight">Apostolic Songs</h1>
-              <p className="text-xs" style={{ color: '#D4AF37' }}>Afaan Oromo</p>
+              <p className="text-white font-bold text-sm leading-tight tracking-tight">Apostolic Songs</p>
+              <p className="text-xs leading-tight" style={{ color: '#D4AF37' }}>Afaan Oromo</p>
             </div>
           </div>
 
-          {/* Offline / Online indicator pill */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-            style={{
-              background: isOffline ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)',
-              border: `1px solid ${isOffline ? 'rgba(234,179,8,0.4)' : 'rgba(34,197,94,0.4)'}`,
-            }}>
-            <div className="w-1.5 h-1.5 rounded-full"
-              style={{ background: isOffline ? '#EAB308' : '#22C55E',
-                boxShadow: isOffline ? 'none' : '0 0 4px #22C55E' }} />
-            <span className="text-xs font-medium"
-              style={{ color: isOffline ? '#EAB308' : '#22C55E' }}>
-              {isOffline ? 'Offline' : 'Online'}
-            </span>
+          {/* Right controls */}
+          <div className="flex items-center gap-2">
+
+            {/* 🔒 Locked upload — frosted pill */}
+            <button
+              onClick={handleLockedClick}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-opacity active:opacity-60"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                color: 'rgba(255,255,255,0.45)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(8px)',
+              }}
+              aria-label="Upload locked — admin only"
+            >
+              <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4" strokeLinecap="round"/>
+              </svg>
+              Upload
+            </button>
+
+            {/* Online / Offline pill — polished */}
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-500"
+              style={{
+                background: isOffline ? 'rgba(234,179,8,0.12)' : 'rgba(34,197,94,0.12)',
+                border: `1px solid ${isOffline ? 'rgba(234,179,8,0.35)' : 'rgba(34,197,94,0.35)'}`,
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{
+                  background: isOffline ? '#EAB308' : '#22C55E',
+                  ...(isOffline ? {} : { animation: 'breathe 2.2s ease-in-out infinite' }),
+                }}
+              />
+              <span
+                className="text-xs font-semibold leading-none"
+                style={{ color: isOffline ? '#EAB308' : '#22C55E' }}
+              >
+                {isOffline ? 'Offline' : 'Online'}
+              </span>
+            </div>
           </div>
         </div>
 
+        {/* Locked-upload toast */}
+        {showLockedMsg && (
+          <div
+            className="mb-2 px-3 py-2 rounded-xl text-xs font-medium text-center fade-in"
+            style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.25)' }}
+          >
+            🔒 Only admins can upload songs and artists
+          </div>
+        )}
+
         {/* Search bar */}
         <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2"
-            width="15" height="15" fill="none" stroke="#888" strokeWidth="2" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" strokeLinecap="round" />
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            width="14" height="14" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
           </svg>
-          <input type="text" placeholder={t.searchPlaceholder} value={searchQuery}
+          <input
+            type="text"
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-gray-800 outline-none"
-            style={{ background: 'rgba(255,255,255,0.97)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }} />
+            className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm text-gray-800 outline-none"
+            style={{
+              background: 'rgba(255,255,255,0.96)',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+              border: '1px solid rgba(255,255,255,0.5)',
+            }}
+          />
           {searchQuery && (
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg leading-none"
-              onClick={() => setSearchQuery('')}>✕</button>
+            <button
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center rounded-full text-gray-400"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+            >
+              <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round"/>
+              </svg>
+            </button>
           )}
         </div>
       </div>
 
-      {/* ── Category pills ── */}
+      {/* ── Category pills ──────────────────────────────────────────────────── */}
       {!searchQuery && (
-        <div className="px-4 pt-3 pb-1 flex gap-2 overflow-x-auto scrollbar-hide">
-          {CATEGORIES.map((cat) => (
-            <button key={cat.key} onClick={() => setSelectedCategory(cat.key)}
-              className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-150"
-              style={selectedCategory === cat.key
-                ? { background: '#D4AF37', color: '#1a1a2e', boxShadow: '0 2px 8px rgba(212,175,55,0.4)' }
-                : { background: 'white', color: '#5a5a7a', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-              {cat.emoji} {cat.label}
-            </button>
-          ))}
+        <div className="px-4 pt-3 pb-0.5 flex gap-2 overflow-x-auto scrollbar-hide">
+          {CATEGORIES.map((cat) => {
+            const active = selectedCategory === cat.key;
+            return (
+              <button
+                key={cat.key}
+                onClick={() => setSelectedCategory(cat.key)}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-150"
+                style={active
+                  ? { background: '#D4AF37', color: '#1a1a2e', boxShadow: '0 2px 10px rgba(212,175,55,0.45)' }
+                  : { background: 'white', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid rgba(0,0,0,0.05)' }}
+              >
+                <span className="text-sm leading-none">{cat.emoji}</span>
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* ── Section title ── */}
-      <div className="px-4 pt-3 pb-1">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-          {searchQuery ? `Results for "${searchQuery}"` : CATEGORIES.find((c) => c.key === selectedCategory)?.label}
+      {/* ── Section label ──────────────────────────────────────────────────── */}
+      <div className="px-4 pt-4 pb-2">
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>
+          {searchQuery
+            ? `Results · "${searchQuery}"`
+            : CATEGORIES.find((c) => c.key === selectedCategory)?.label}
         </p>
       </div>
 
-      {/* ── Artist list ── */}
-      <div className="px-4 pb-6">
+      {/* ── Artist list ────────────────────────────────────────────────────── */}
+      <div className="px-4 pb-8">
         {loading || isSearching ? (
+          /* Skeleton cards */
           <div className="space-y-2.5">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-white">
+              <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-white"
+                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                 <div className="w-14 h-14 rounded-xl shimmer flex-shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 rounded-lg shimmer w-2/3" />
+                  <div className="h-3.5 rounded-lg shimmer w-2/3" />
                   <div className="h-3 rounded-lg shimmer w-1/3" />
                 </div>
               </div>
             ))}
           </div>
         ) : displayList.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <svg className="mx-auto mb-3" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" strokeLinecap="round" />
+          <div className="text-center py-16" style={{ color: 'var(--text-3)' }}>
+            <svg className="mx-auto mb-3" width="44" height="44" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
             </svg>
             <p className="text-sm">{t.noArtistsFound}</p>
-            {isOffline && <p className="text-xs mt-1">Connect to internet to load artists</p>}
+            {isOffline && <p className="text-xs mt-1 opacity-60">Connect to internet to load artists</p>}
           </div>
         ) : (
           <div className="space-y-2 fade-in">
             {displayList.map((artist) => (
-              <button key={artist.id}
-                onClick={() => router.push(`/artist/${artist.id}`)}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl text-left active:scale-98 transition-transform duration-100"
-                style={{ background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                {/* Avatar */}
-                <div className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden"
-                  style={{ background: '#eeeef8' }}>
-                  {artist.image_url ? (
-                    <img src={artist.image_url} alt={artist.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <svg width="26" height="26" fill="none" stroke="#D4AF37" strokeWidth="1.6" viewBox="0 0 24 24">
-                      {artist.is_group ? (
-                        <><path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87" strokeLinecap="round" />
-                          <circle cx="9" cy="8" r="4" /><circle cx="17" cy="8" r="4" /></>
-                      ) : (
-                        <><circle cx="12" cy="8" r="4" />
-                          <path d="M20 20c0-4.4-3.6-8-8-8s-8 3.6-8 8" strokeLinecap="round" /></>
-                      )}
-                    </svg>
-                  )}
-                </div>
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 truncate">{artist.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {artist.is_group ? t.group : t.artist}
-                    <span className="mx-1">·</span>
-                    <span className="capitalize">{artist.category}</span>
-                  </p>
-                </div>
-                <svg width="16" height="16" fill="none" stroke="#d0d0d8" strokeWidth="2.2" viewBox="0 0 24 24">
-                  <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+              <ArtistCard key={artist.id} artist={artist} t={t} onPress={() => router.push(`/artist/${artist.id}`)} />
             ))}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/* ── Artist card ─────────────────────────────────────────────────────────────── */
+function ArtistCard({
+  artist, t, onPress,
+}: {
+  artist: Artist;
+  t: { group: string; artist: string };
+  onPress: () => void;
+}) {
+  return (
+    <button
+      onClick={onPress}
+      className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all duration-100 active:scale-98"
+      style={{
+        background: 'white',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03)',
+      }}
+    >
+      {/* Avatar */}
+      <div
+        className="w-13 h-13 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden"
+        style={{ width: 52, height: 52, background: 'linear-gradient(135deg, #eeeef8, #e4e4f4)' }}
+      >
+        {artist.image_url ? (
+          <img src={artist.image_url} alt={artist.name} className="w-full h-full object-cover" />
+        ) : (
+          <svg width="24" height="24" fill="none" stroke="#D4AF37" strokeWidth="1.6" viewBox="0 0 24 24">
+            {artist.is_group ? (
+              <>
+                <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87" strokeLinecap="round"/>
+                <circle cx="9" cy="8" r="4"/><circle cx="17" cy="8" r="4"/>
+              </>
+            ) : (
+              <>
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M20 20c0-4.4-3.6-8-8-8s-8 3.6-8 8" strokeLinecap="round"/>
+              </>
+            )}
+          </svg>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm leading-tight truncate" style={{ color: 'var(--text-1)' }}>
+          {artist.name}
+        </p>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>
+          {artist.is_group ? t.group : t.artist}
+          <span className="mx-1 opacity-40">·</span>
+          <span className="capitalize">{artist.category}</span>
+        </p>
+      </div>
+
+      {/* Chevron */}
+      <svg width="15" height="15" fill="none" stroke="#d1d5db" strokeWidth="2" viewBox="0 0 24 24">
+        <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </button>
   );
 }

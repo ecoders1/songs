@@ -1,24 +1,16 @@
 // ─── Cache names ─────────────────────────────────────────────────────────────
-// IMPORTANT: AUDIO_CACHE, API_CACHE, IMAGE_CACHE never change version
-// so cached songs/data survive app updates forever.
-const VERSION     = 'v8';
-const CACHE_NAME  = `faarfannaa-${VERSION}`;   // app shell — versioned
-const AUDIO_CACHE = 'faarfannaa-audio';        // audio files — permanent
-const API_CACHE   = 'faarfannaa-api';          // API responses — permanent
-const IMAGE_CACHE = 'faarfannaa-img';          // cover images — permanent
+const VERSION     = 'v9';
+const CACHE_NAME  = `faarfannaa-${VERSION}`;
+const AUDIO_CACHE = 'faarfannaa-audio';   // permanent — never deleted
+const API_CACHE   = 'faarfannaa-api';     // permanent
+const IMAGE_CACHE = 'faarfannaa-img';     // permanent
 
-// Persistent caches that must NEVER be deleted on update
 const PERMANENT_CACHES = [AUDIO_CACHE, API_CACHE, IMAGE_CACHE];
 
 const STATIC_ASSETS = [
-  '/',
-  '/home',
-  '/library',
-  '/playlist',
-  '/settings',
-  '/player',
-  '/icons/icon.svg',
-  '/manifest.json',
+  '/', '/home', '/library', '/playlist', '/settings', '/player',
+  '/auth', '/pending',
+  '/icons/icon.png', '/manifest.json',
 ];
 
 // ─── Install ──────────────────────────────────────────────────────────────────
@@ -30,19 +22,15 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// ─── Activate: ONLY delete old versioned app shell caches ────────────────────
-// Permanent caches (audio/api/image) are NEVER touched here
+// ─── Activate ─────────────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
         keys
           .filter((k) => {
-            // Keep current shell cache
             if (k === CACHE_NAME) return false;
-            // NEVER delete permanent caches
             if (PERMANENT_CACHES.includes(k)) return false;
-            // Delete only old versioned shell caches
             return k.startsWith('faarfannaa-v');
           })
           .map((k) => caches.delete(k))
@@ -52,26 +40,20 @@ self.addEventListener('activate', (event) => {
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function isSupabaseAudio(url) {
+function isAudioUrl(url) {
   return (
-    url.hostname.includes('supabase') &&
-    url.pathname.includes('/storage/') &&
-    (url.pathname.includes('/audio/') ||
-     url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac)$/i))
+    url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac)$/i) ||
+    (url.hostname.includes('supabase') && url.pathname.includes('/storage/') &&
+      (url.pathname.includes('/audio/') ||
+       url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac)$/i)))
   );
 }
 
-function isSupabaseImage(url) {
+function isImageUrl(url) {
   return (
-    url.hostname.includes('supabase') &&
-    url.pathname.includes('/storage/') &&
-    (url.pathname.includes('/images/') ||
-     url.pathname.match(/\.(jpg|jpeg|png|webp|gif)$/i))
+    url.pathname.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i) &&
+    url.hostname.includes('supabase')
   );
-}
-
-function isLocalAudio(url) {
-  return url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac)$/i);
 }
 
 function isSongsOrArtistsApi(url) {
@@ -81,37 +63,110 @@ function isSongsOrArtistsApi(url) {
   );
 }
 
+/**
+ * Handle audio range requests from the browser's media element.
+ * The browser sends Range: bytes=X-Y headers for seeking/streaming.
+ * We store the FULL audio blob in cache and slice it on demand.
+ * This makes seeking and every-second progress work fully offline.
+ */
+async function handleAudioRequest(request) {
+  const cache = await caches.open(AUDIO_CACHE);
+  const rangeHeader = request.headers.get('Range');
+
+  // Try to get the full cached response
+  const cachedFull = await cache.match(request.url);
+
+  if (cachedFull) {
+    // Serve range from cached full response
+    if (rangeHeader) {
+      return serveRange(cachedFull, rangeHeader);
+    }
+    return cachedFull;
+  }
+
+  // Not cached — fetch from network
+  try {
+    // Always fetch the full file (no range) so we can cache it completely
+    const fullRequest = new Request(request.url, {
+      method: 'GET',
+      headers: { 'Accept': request.headers.get('Accept') || '*/*' },
+    });
+    const networkResponse = await fetch(fullRequest);
+
+    if (networkResponse.ok) {
+      // Clone and store full response in cache
+      const responseToCache = networkResponse.clone();
+      cache.put(request.url, responseToCache).catch(() => {});
+
+      // If browser wanted a range, serve it from the network response
+      if (rangeHeader) {
+        return serveRange(networkResponse, rangeHeader);
+      }
+      return networkResponse;
+    }
+    return networkResponse;
+  } catch {
+    // Completely offline and not cached
+    return new Response('Audio not available offline', {
+      status: 503,
+      statusText: 'Service Unavailable',
+    });
+  }
+}
+
+/**
+ * Slice a full cached Response to satisfy a Range: bytes=start-end request.
+ * This is what enables seeking and real-time progress while offline.
+ */
+async function serveRange(fullResponse, rangeHeader) {
+  const arrayBuffer = await fullResponse.clone().arrayBuffer();
+  const totalBytes  = arrayBuffer.byteLength;
+
+  const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+  if (!match) {
+    return new Response(arrayBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': fullResponse.headers.get('Content-Type') || 'audio/mpeg',
+        'Content-Length': String(totalBytes),
+        'Accept-Ranges': 'bytes',
+      },
+    });
+  }
+
+  const start = match[1] !== '' ? parseInt(match[1], 10) : totalBytes - parseInt(match[2], 10);
+  const end   = match[2] !== '' ? parseInt(match[2], 10) : totalBytes - 1;
+  const clampedEnd = Math.min(end, totalBytes - 1);
+  const length = clampedEnd - start + 1;
+
+  const chunk = arrayBuffer.slice(start, clampedEnd + 1);
+
+  return new Response(chunk, {
+    status: 206,
+    statusText: 'Partial Content',
+    headers: {
+      'Content-Type':  fullResponse.headers.get('Content-Type') || 'audio/mpeg',
+      'Content-Range': `bytes ${start}-${clampedEnd}/${totalBytes}`,
+      'Content-Length': String(length),
+      'Accept-Ranges': 'bytes',
+    },
+  });
+}
+
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // ── 1. Audio (Supabase storage or direct URL) → cache-first ─────────────────
-  if (isSupabaseAudio(url) || isLocalAudio(url)) {
-    event.respondWith(
-      caches.open(AUDIO_CACHE).then(async (cache) => {
-        const cached = await cache.match(event.request);
-        if (cached) return cached;
-        try {
-          const response = await fetch(event.request.clone());
-          if (response.ok) cache.put(event.request, response.clone());
-          return response;
-        } catch {
-          // Return a proper audio response if we somehow missed caching
-          return cached || new Response('', {
-            status: 503,
-            statusText: 'Audio unavailable offline',
-          });
-        }
-      })
-    );
+  // ── 1. Audio → cache-first with full range support ───────────────────────
+  if (isAudioUrl(url)) {
+    event.respondWith(handleAudioRequest(event.request));
     return;
   }
 
-  // ── 2. Cover images (Supabase) → cache-first ────────────────────────────────
-  if (isSupabaseImage(url)) {
+  // ── 2. Cover images → cache-first ────────────────────────────────────────
+  if (isImageUrl(url)) {
     event.respondWith(
       caches.open(IMAGE_CACHE).then(async (cache) => {
         const cached = await cache.match(event.request);
@@ -128,24 +183,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ── 3. Songs & Artists API → network-first, MERGE with cache offline ─────────
-  // When online: always fetch fresh + update cache (so new songs appear)
-  // When offline: serve cached response (previously fetched data stays)
+  // ── 3. Songs & Artists API → network-first, cache offline ────────────────
   if (isSongsOrArtistsApi(url)) {
     event.respondWith(
       caches.open(API_CACHE).then(async (cache) => {
         try {
           const response = await fetch(event.request.clone());
-          if (response.ok) {
-            // Always update cache with latest data when online
-            cache.put(event.request, response.clone());
-          }
+          if (response.ok) cache.put(event.request, response.clone());
           return response;
         } catch {
-          // Offline — serve last known good response
           const cached = await cache.match(event.request);
           if (cached) return cached;
-          // No cache yet — return empty but valid response
           const key = url.pathname.startsWith('/api/songs') ? 'songs' : 'artists';
           return new Response(
             JSON.stringify({ [key]: [], _offline: true }),
@@ -157,7 +205,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ── 4. Admin API routes → network only (never cache) ────────────────────────
+  // ── 4. Auth API → network only, graceful offline ──────────────────────────
+  if (url.pathname.startsWith('/api/auth/')) {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        new Response(JSON.stringify({ error: 'Offline' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    );
+    return;
+  }
+
+  // ── 5. Other API routes → network only ───────────────────────────────────
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() =>
@@ -170,22 +231,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ── 5. Navigation requests → network-first, cache fallback ──────────────────
+  // ── 6. Navigation → network-first, shell fallback ─────────────────────────
   if (event.request.mode === 'navigate') {
     event.respondWith(
       Promise.race([
         fetch(event.request.clone()).then((response) => {
-          if (response.ok) {
+          if (response.ok)
             caches.open(CACHE_NAME).then((c) => c.put(event.request, response.clone()));
-          }
           return response;
         }),
-        // 4 second timeout before falling back to cache
         new Promise((_, reject) => setTimeout(() => reject('timeout'), 4000)),
       ]).catch(async () => {
         const cached = await caches.match(event.request);
         if (cached) return cached;
-        // Fall back to /home shell for any unmatched navigation
         const home = await caches.match('/home');
         return home || new Response('<h1>Offline</h1>', {
           status: 200,
@@ -196,7 +254,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ── 6. Static assets (JS/CSS/fonts/icons) → stale-while-revalidate ──────────
+  // ── 7. Static assets → stale-while-revalidate ─────────────────────────────
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
       const cached = await cache.match(event.request);
@@ -206,7 +264,6 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => cached);
-      // Serve cache immediately; update in background
       return cached || networkFetch;
     })
   );
@@ -215,54 +272,40 @@ self.addEventListener('fetch', (event) => {
 // ─── Messages from app ────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
 
-  // Cache a single audio file (called when song is played)
   if (event.data?.type === 'CACHE_AUDIO') {
     const { url } = event.data;
     if (!url) return;
     caches.open(AUDIO_CACHE).then(async (cache) => {
       const existing = await cache.match(url);
-      if (existing) return; // already cached
-      fetch(url)
-        .then((r) => { if (r.ok) cache.put(url, r); })
-        .catch(() => {});
+      if (existing) return;
+      fetch(new Request(url)).then((r) => { if (r.ok) cache.put(url, r); }).catch(() => {});
     });
   }
 
-  // Pre-cache ALL songs and images in background (called from library page)
   if (event.data?.type === 'CACHE_ALL_SONGS') {
     const { songs } = event.data;
     if (!Array.isArray(songs)) return;
-
-    Promise.all([
-      caches.open(AUDIO_CACHE),
-      caches.open(IMAGE_CACHE),
-    ]).then(([audioCache, imgCache]) => {
-      for (const song of songs) {
-        // Audio
-        if (song.audio_url) {
-          audioCache.match(song.audio_url).then((existing) => {
-            if (!existing) {
-              fetch(song.audio_url)
-                .then((r) => { if (r.ok) audioCache.put(song.audio_url, r); })
-                .catch(() => {});
-            }
-          });
+    Promise.all([caches.open(AUDIO_CACHE), caches.open(IMAGE_CACHE)])
+      .then(([audioCache, imgCache]) => {
+        for (const song of songs) {
+          if (song.audio_url) {
+            audioCache.match(song.audio_url).then((existing) => {
+              if (!existing)
+                fetch(new Request(song.audio_url))
+                  .then((r) => { if (r.ok) audioCache.put(song.audio_url, r); })
+                  .catch(() => {});
+            });
+          }
+          if (song.image_url) {
+            imgCache.match(song.image_url).then((existing) => {
+              if (!existing)
+                fetch(song.image_url).then((r) => { if (r.ok) imgCache.put(song.image_url, r); }).catch(() => {});
+            });
+          }
         }
-        // Image
-        if (song.image_url) {
-          imgCache.match(song.image_url).then((existing) => {
-            if (!existing) {
-              fetch(song.image_url)
-                .then((r) => { if (r.ok) imgCache.put(song.image_url, r); })
-                .catch(() => {});
-            }
-          });
-        }
-      }
-    });
+      });
   }
 
-  // Force new SW to take control (called after updatefound)
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }

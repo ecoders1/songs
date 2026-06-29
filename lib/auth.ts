@@ -1,7 +1,9 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-// Fallback secret used if env var is missing — works out of the box
-// Set ADMIN_JWT_SECRET in Vercel dashboard for production security
+// Fallback secret works out of the box for local dev.
+// For production: set ADMIN_JWT_SECRET in Vercel / your hosting env vars.
+// Tokens signed with the fallback will be invalidated if you later set the env var —
+// that just means admins need to log in once after the env var is added (expected behavior).
 const FALLBACK_SECRET = 'apostolic_songs_super_secret_jwt_key_2024!!';
 
 function getSecret(): Uint8Array {
@@ -10,7 +12,7 @@ function getSecret(): Uint8Array {
 }
 
 export async function signAdminToken(): Promise<string> {
-  return await new SignJWT({ role: 'admin' })
+  return new SignJWT({ role: 'admin' })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('8h')
     .setIssuedAt()
@@ -19,8 +21,7 @@ export async function signAdminToken(): Promise<string> {
 
 export async function verifyAdminToken(token: string): Promise<boolean> {
   try {
-    const secret = getSecret();
-    await jwtVerify(token, secret);
+    await jwtVerify(token, getSecret());
     return true;
   } catch {
     return false;

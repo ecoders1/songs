@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PlayerProvider } from "@/context/PlayerContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { UserProvider } from "@/context/UserContext";
 
 export const metadata: Metadata = {
   title: "Apostolic Songs Afaan Oromo",
@@ -13,8 +14,8 @@ export const metadata: Metadata = {
     title: "Apostolic Songs",
   },
   icons: {
-    icon: "/icons/icon.svg",
-    apple: "/icons/icon.svg",
+    icon: "/icons/icon.png",
+    apple: "/icons/icon.png",
   },
 };
 
@@ -39,14 +40,16 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         {/* Preload critical assets for instant load */}
-        <link rel="preload" href="/icons/icon.svg" as="image" type="image/svg+xml" />
+        <link rel="preload" href="/icons/icon.png" as="image" type="image/png" />
         {/* DNS prefetch for Supabase */}
         <link rel="dns-prefetch" href="https://lzznufriodxghmksokts.supabase.co" />
         <link rel="preconnect" href="https://lzznufriodxghmksokts.supabase.co" crossOrigin="anonymous" />
       </head>
       <body className="min-h-full flex flex-col bg-white">
         <LanguageProvider>
-          <PlayerProvider>{children}</PlayerProvider>
+          <UserProvider>
+            <PlayerProvider>{children}</PlayerProvider>
+          </UserProvider>
         </LanguageProvider>
       </body>
     </html>

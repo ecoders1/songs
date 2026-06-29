@@ -3,6 +3,24 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
+-- ─── Users table (for app sign-up / sign-in) ─────────────────────────────────
+create table if not exists app_users (
+  id            uuid default uuid_generate_v4() primary key,
+  full_name     text not null,
+  email         text not null unique,
+  password_hash text not null,
+  device_id     text not null unique,  -- one device per account
+  status        text check (status in ('pending', 'approved', 'rejected')) not null default 'pending',
+  created_at    timestamp with time zone default now(),
+  approved_at   timestamp with time zone,
+  rejected_at   timestamp with time zone,
+  reset_at      timestamp with time zone
+);
+
+create index if not exists app_users_email_idx     on app_users(email);
+create index if not exists app_users_device_id_idx on app_users(device_id);
+create index if not exists app_users_status_idx    on app_users(status);
+
 -- Artists / Groups table
 create table if not exists artists (
   id uuid default uuid_generate_v4() primary key,
@@ -76,10 +94,11 @@ create policy "Service role delete audio"  on storage.objects for delete using (
 create policy "Service role delete images" on storage.objects for delete using (bucket_id = 'images');
 
 -- Row Level Security
-alter table artists      enable row level security;
-alter table songs        enable row level security;
-alter table playlists    enable row level security;
+alter table artists        enable row level security;
+alter table songs          enable row level security;
+alter table playlists      enable row level security;
 alter table playlist_songs enable row level security;
+alter table app_users      enable row level security;
 
 -- Table policies (drop first so re-runs don't fail)
 drop policy if exists "Public read artists"        on artists;
@@ -92,6 +111,8 @@ create policy "Public read songs"          on songs          for select using (t
 create policy "Public read playlists"      on playlists      for select using (true);
 create policy "Public read playlist_songs" on playlist_songs for select using (true);
 
+-- app_users: no public reads — all access via service role through API
+-- Service role has full bypass of RLS, so no additional policies needed for writes.
 -- Full access via service role (admin operations go through API with service key)
 
 -- ─── Seed demo data (safe to re-run — uses ON CONFLICT DO NOTHING) ────────────
@@ -99,7 +120,7 @@ create policy "Public read playlist_songs" on playlist_songs for select using (t
 -- Replace audio_url values with your real Supabase storage URLs after uploading.
 
 INSERT INTO artists (id, name, bio, is_group, category) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'Caalaa Bultumee', 'Faarfataa Afaan Oromoo beekamaa', false, 'single'),
+  ('00000000-0000-0000-0000-000000000001', 'Henok Mulgeta', 'Faarfataa Afaan Oromoo beekamaa', false, 'single'),
   ('00000000-0000-0000-0000-000000000002', 'Group Faarfannaa', 'Garee faarfannaa waldaa', true, 'group'),
   ('00000000-0000-0000-0000-000000000003', 'Elemoo Hora', 'Faarfataa', false, 'new'),
   ('00000000-0000-0000-0000-000000000004', 'Choir Apostolic', 'Garee faarfannaa Apostolic', true, 'group')

@@ -32,14 +32,22 @@ export default function SplashScreen() {
       });
     }
 
-    // If already visited before — skip splash, go straight to /home
+    // Check if user has an active session — skip splash on repeat visits
     const visited = sessionStorage.getItem('visited');
     if (visited) {
-      router.replace('/home');
+      // Check session status and route appropriately
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then((r) => r.json())
+        .then(({ user }) => {
+          if (!user) { router.replace('/auth'); return; }
+          if (user.status === 'approved') router.replace('/home');
+          else router.replace('/pending');
+        })
+        .catch(() => router.replace('/auth'));
       return;
     }
 
-    // First visit — show splash
+    // First visit — show splash then go to auth
     sessionStorage.setItem('visited', '1');
     setShow(true);
 
@@ -52,13 +60,22 @@ export default function SplashScreen() {
 
     const timer = setTimeout(() => {
       setFadeOut(true);
-      setTimeout(() => router.replace('/home'), 300);
+      // Check session on first load too
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then((r) => r.json())
+        .then(({ user }) => {
+          setTimeout(() => {
+            if (!user) router.replace('/auth');
+            else if (user.status === 'approved') router.replace('/home');
+            else router.replace('/pending');
+          }, 300);
+        })
+        .catch(() => setTimeout(() => router.replace('/auth'), 300));
     }, 1400);
 
     return () => { clearInterval(interval); clearTimeout(timer); };
   }, [router]);
 
-  // Don't flash splash on repeat visits
   if (!show) return null;
 
   return (
@@ -74,7 +91,7 @@ export default function SplashScreen() {
       <div className="relative mb-5 z-10">
         <div className="w-32 h-32 rounded-full overflow-hidden flex items-center justify-center"
           style={{ boxShadow: '0 0 50px rgba(212,175,55,0.35), 0 16px 40px rgba(0,0,0,0.5)', border: '3px solid rgba(212,175,55,0.5)' }}>
-          <Image src="/icons/icon.svg" alt="Apostolic Songs" width={128} height={128} priority className="w-full h-full object-cover" />
+          <Image src="/icons/icon.png" alt="Apostolic Songs" width={128} height={128} priority className="w-full h-full object-cover" />
         </div>
         <div className="absolute inset-0 rounded-full"
           style={{ border: '2px solid rgba(212,175,55,0.4)', animation: 'ping 2s cubic-bezier(0,0,0.2,1) infinite' }} />

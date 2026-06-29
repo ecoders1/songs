@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLanguage, UI_TEXT, type AppLanguage } from '@/context/LanguageContext';
+import { useUser } from '@/context/UserContext';
 
 const LANGUAGES: { key: AppLanguage; label: string; native: string }[] = [
   { key: 'oromo',   label: 'Afaan Oromoo', native: 'Afaan Oromoo' },
@@ -12,7 +14,9 @@ const LANGUAGES: { key: AppLanguage; label: string; native: string }[] = [
 ];
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
+  const { user, logout } = useUser();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [pwaInstallable, setPwaInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
@@ -46,6 +50,11 @@ export default function SettingsPage() {
     } else {
       setNotificationsEnabled(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    await logout();
+    router.replace('/auth');
   };
 
   return (
@@ -209,6 +218,44 @@ export default function SettingsPage() {
           <p className="text-xs text-gray-300">Apostolic Songs Afaan Oromoo</p>
           <p className="text-xs text-gray-300">Made with ❤️ for the Church</p>
         </div>
+
+        {/* Account / Sign Out */}
+        {user && (
+          <div className="pb-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Account</h2>
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e8f0' }}>
+              <div className="flex justify-between px-4 py-3.5" style={{ borderBottom: '1px solid #f0f0f8' }}>
+                <span className="text-gray-500 text-sm">Name</span>
+                <span className="text-gray-800 text-sm font-medium truncate ml-4">{user.full_name}</span>
+              </div>
+              <div className="flex justify-between px-4 py-3.5" style={{ borderBottom: '1px solid #f0f0f8' }}>
+                <span className="text-gray-500 text-sm">Email</span>
+                <span className="text-gray-800 text-sm font-medium truncate ml-4">{user.email}</span>
+              </div>
+              <div className="flex justify-between items-center px-4 py-3.5" style={{ borderBottom: '1px solid #f0f0f8' }}>
+                <span className="text-gray-500 text-sm">Status</span>
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full font-medium capitalize"
+                  style={{
+                    background: user.status === 'approved' ? '#D1FAE5' : user.status === 'rejected' ? '#FEE2E2' : '#FFF3CD',
+                    color:      user.status === 'approved' ? '#065F46' : user.status === 'rejected' ? '#991B1B' : '#856404',
+                  }}
+                >
+                  {user.status}
+                </span>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold text-red-500"
+              >
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
