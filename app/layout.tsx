@@ -3,6 +3,7 @@ import "./globals.css";
 import { PlayerProvider } from "@/context/PlayerContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { UserProvider } from "@/context/UserContext";
+import { PWAProvider } from "@/context/PWAContext";
 
 export const metadata: Metadata = {
   title: "Apostolic Songs Afaan Oromo",
@@ -48,7 +49,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-white">
         <LanguageProvider>
           <UserProvider>
-            <PlayerProvider>{children}</PlayerProvider>
+            <PWAProvider>
+              <PlayerProvider>{children}</PlayerProvider>
+            </PWAProvider>
           </UserProvider>
         </LanguageProvider>
       </body>

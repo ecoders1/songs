@@ -7,6 +7,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { usePlayer } from '@/context/PlayerContext';
 import { useUser } from '@/context/UserContext';
 import { getArtistCache, setArtistCache } from '@/lib/dataCache';
+import InstallPrompt from '@/components/InstallPrompt';
 import type { Artist, Category } from '@/lib/types';
 
 export default function HomePage() {
@@ -92,6 +93,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      <InstallPrompt />
 
       {/* ── Sticky frosted-glass header ────────────────────────────────────── */}
       <div

@@ -1,58 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { usePWA } from '@/context/PWAContext';
 
 export default function PWAInstallBanner() {
-  const [show, setShow] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
-  const [installed, setInstalled] = useState(false);
+  const { canInstall, isInstalled, triggerInstall } = usePWA();
+  const [dismissed, setDismissed] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
-  useEffect(() => {
-    // Don't show if already installed as PWA
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setInstalled(true);
-      return;
-    }
-
-    // Check if user dismissed before
-    const dismissed = sessionStorage.getItem('pwa_banner_dismissed');
-    if (dismissed) return;
-
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      // Auto-show banner after 2 seconds
-      setTimeout(() => setShow(true), 2000);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => {
-      setInstalled(true);
-      setShow(false);
-    });
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
+  // Hide if already installed, dismissed, or prompt not available
+  if (isInstalled || dismissed || !canInstall) return null;
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (deferredPrompt as any).prompt();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { outcome } = await (deferredPrompt as any).userChoice;
-    if (outcome === 'accepted') {
-      setShow(false);
-      setInstalled(true);
-    }
-    setDeferredPrompt(null);
+    setInstalling(true);
+    await triggerInstall();
+    setInstalling(false);
   };
 
   const handleDismiss = () => {
-    setShow(false);
+    setDismissed(true);
     sessionStorage.setItem('pwa_banner_dismissed', '1');
   };
-
-  if (installed || !show) return null;
 
   return (
     <div
@@ -95,13 +63,14 @@ export default function PWAInstallBanner() {
       {/* Install button */}
       <button
         onClick={handleInstall}
+        disabled={installing}
         className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
-        style={{ background: '#D4AF37', color: '#1a1a2e' }}
+        style={{ background: installing ? '#e0c070' : '#D4AF37', color: '#1a1a2e', opacity: installing ? 0.8 : 1 }}
       >
         <svg width="16" height="16" fill="none" stroke="#1a1a2e" strokeWidth="2.5" viewBox="0 0 24 24">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        Install App — Free
+        {installing ? 'Installing...' : 'Install App — Free'}
       </button>
     </div>
   );
