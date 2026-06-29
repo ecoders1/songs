@@ -156,34 +156,29 @@ export default function HomePage() {
                 )}
               </button>
 
-              {/* Theme dropdown */}
+              {/* Theme dropdown — horizontal pills */}
               {showThemeMenu && (
                 <div
-                  className="absolute right-0 top-10 z-50 rounded-2xl overflow-hidden shadow-2xl"
-                  style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', minWidth: 140 }}
+                  className="absolute right-0 top-10 z-50 rounded-2xl shadow-2xl flex flex-row"
+                  style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', padding: '6px' , gap: '4px' }}
                 >
                   {([
                     { key: 'light',  label: 'Light',  icon: '☀️' },
                     { key: 'dark',   label: 'Dark',   icon: '🌙' },
                     { key: 'system', label: 'System', icon: '⚙️' },
-                  ] as { key: Theme; label: string; icon: string }[]).map((opt, i, arr) => (
+                  ] as { key: Theme; label: string; icon: string }[]).map((opt) => (
                     <button
                       key={opt.key}
                       onClick={() => { setTheme(opt.key); setShowThemeMenu(false); }}
-                      className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium transition-all active:opacity-60"
+                      className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:opacity-60"
                       style={{
-                        color: theme === opt.key ? 'var(--gold)' : 'var(--text-1)',
-                        background: theme === opt.key ? 'rgba(212,175,55,0.08)' : 'transparent',
-                        borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                        color: theme === opt.key ? '#1a1a2e' : 'var(--text-2)',
+                        background: theme === opt.key ? '#D4AF37' : 'transparent',
+                        minWidth: 54,
                       }}
                     >
-                      <span>{opt.icon}</span>
+                      <span className="text-base leading-none">{opt.icon}</span>
                       <span>{opt.label}</span>
-                      {theme === opt.key && (
-                        <svg className="ml-auto" width="14" height="14" fill="none" stroke="#D4AF37" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
                     </button>
                   ))}
                 </div>
