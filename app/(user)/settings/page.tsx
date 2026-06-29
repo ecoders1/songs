@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage, UI_TEXT, type AppLanguage } from '@/context/LanguageContext';
 import { useUser } from '@/context/UserContext';
+import { usePlayer } from '@/context/PlayerContext';
 
 const LANGUAGES: { key: AppLanguage; label: string; native: string }[] = [
   { key: 'oromo',   label: 'Afaan Oromoo', native: 'Afaan Oromoo' },
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
   const { user, logout } = useUser();
+  const { clearQueue, pauseSong } = usePlayer();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [pwaInstallable, setPwaInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
@@ -53,6 +55,8 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
+    pauseSong();   // stop any playing audio
+    clearQueue();  // remove queue/playlist
     await logout();
     router.replace('/auth');
   };
