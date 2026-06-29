@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   // Enforce: only the registered device can log in
   if (user.device_id !== device_id.trim()) {
     return NextResponse.json(
-      { error: 'This account is registered to a different device.' },
+      { error: 'This account was registered on a different device. You can only sign in from the device you registered with.' },
       { status: 403 },
     );
   }

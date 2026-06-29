@@ -9,18 +9,18 @@ function getServiceSupabase() {
   );
 }
 
-// Simple rate-limit: max 3 registrations per IP per hour
+// Rate-limit: max 2 registrations per IP per 24 hours
 const regAttempts = new Map<string, { count: number; resetAt: number }>();
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = regAttempts.get(ip);
   if (!entry || now > entry.resetAt) {
-    regAttempts.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 });
+    regAttempts.set(ip, { count: 1, resetAt: now + 24 * 60 * 60 * 1000 });
     return false;
   }
   entry.count += 1;
-  return entry.count > 3;
+  return entry.count > 2;
 }
 
 export async function POST(req: NextRequest) {
@@ -30,7 +30,10 @@ export async function POST(req: NextRequest) {
     'unknown';
 
   if (isRateLimited(ip)) {
-    return NextResponse.json({ error: 'Too many registrations. Try again later.' }, { status: 429 });
+    return NextResponse.json(
+      { error: 'Registration limit reached for this network. Try again tomorrow.' },
+      { status: 429 },
+    );
   }
 
   let body: { full_name?: string; email?: string; password?: string; device_id?: string };
@@ -57,28 +60,54 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = getServiceSupabase();
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanDevice = device_id.trim();
+
+  // ── Check device uniqueness FIRST ───────────────────────────────────────────
+  // One account per device — no matter what email is used
+  const { data: existingDevice } = await supabase
+    .from('app_users')
+    .select('id, email, status')
+    .eq('device_id', cleanDevice)
+    .maybeSingle();
+
+  if (existingDevice) {
+    return NextResponse.json(
+      {
+        error: `This device already has an account registered with ${existingDevice.email}. ` +
+               `Only one account per device is allowed. Please sign in instead.`,
+      },
+      { status: 409 },
+    );
+  }
+
+  // ── Check IP-based registration (extra layer against clearing localStorage) ─
+  // Allow at most 1 approved/pending account per IP to prevent abuse
+  if (ip !== 'unknown') {
+    const { data: ipAccounts } = await supabase
+      .from('app_users')
+      .select('id, status')
+      .eq('registration_ip', ip)
+      .in('status', ['pending', 'approved']);
+
+    if (ipAccounts && ipAccounts.length >= 2) {
+      return NextResponse.json(
+        { error: 'Too many accounts registered from this network. Contact admin for help.' },
+        { status: 429 },
+      );
+    }
+  }
 
   // ── Check email uniqueness ───────────────────────────────────────────────────
   const { data: existingEmail } = await supabase
     .from('app_users')
     .select('id')
-    .eq('email', email.trim().toLowerCase())
+    .eq('email', cleanEmail)
     .maybeSingle();
 
   if (existingEmail) {
-    return NextResponse.json({ error: 'This email is already registered' }, { status: 409 });
-  }
-
-  // ── Check device uniqueness ──────────────────────────────────────────────────
-  const { data: existingDevice } = await supabase
-    .from('app_users')
-    .select('id, email')
-    .eq('device_id', device_id.trim())
-    .maybeSingle();
-
-  if (existingDevice) {
     return NextResponse.json(
-      { error: 'This device already has a registered account. Only one account per device is allowed.' },
+      { error: 'This email is already registered. Please sign in or use a different email.' },
       { status: 409 },
     );
   }
@@ -90,9 +119,10 @@ export async function POST(req: NextRequest) {
     .from('app_users')
     .insert({
       full_name: full_name.trim(),
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
       password_hash,
-      device_id: device_id.trim(),
+      device_id: cleanDevice,
+      registration_ip: ip !== 'unknown' ? ip : null,
       status: 'pending',
     })
     .select('id, full_name, email, status')
@@ -100,13 +130,43 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     if (error.code === '23505') {
-      // Unique violation — race condition on email or device_id
-      return NextResponse.json({ error: 'Email or device already registered' }, { status: 409 });
+      return NextResponse.json({ error: 'Email or device already registered.' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Registration failed. Please try again.' }, { status: 500 });
+    // registration_ip column may not exist yet — retry without it
+    const { data: user2, error: error2 } = await supabase
+      .from('app_users')
+      .insert({
+        full_name: full_name.trim(),
+        email: cleanEmail,
+        password_hash,
+        device_id: cleanDevice,
+        status: 'pending',
+      })
+      .select('id, full_name, email, status')
+      .single();
+
+    if (error2) {
+      if (error2.code === '23505') {
+        return NextResponse.json({ error: 'Email or device already registered.' }, { status: 409 });
+      }
+      return NextResponse.json({ error: 'Registration failed. Please try again.' }, { status: 500 });
+    }
+
+    const token2 = await signUserToken(user2!.id, user2!.email);
+    const response2 = NextResponse.json({
+      success: true,
+      user: { id: user2!.id, full_name: user2!.full_name, email: user2!.email, status: user2!.status },
+    }, { status: 201 });
+    response2.cookies.set('user_token', token2, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24,
+      path: '/',
+    });
+    return response2;
   }
 
-  // Issue a token right away — status is "pending", front-end shows waiting screen
   const token = await signUserToken(user.id, user.email);
 
   const response = NextResponse.json({

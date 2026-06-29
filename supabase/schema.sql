@@ -11,6 +11,7 @@ create table if not exists app_users (
   password_hash text not null,
   device_id     text not null unique,  -- one device per account
   status        text check (status in ('pending', 'approved', 'rejected')) not null default 'pending',
+  registration_ip text,                -- track IP to prevent multi-account abuse
   created_at    timestamp with time zone default now(),
   approved_at   timestamp with time zone,
   rejected_at   timestamp with time zone,
@@ -20,6 +21,9 @@ create table if not exists app_users (
 create index if not exists app_users_email_idx     on app_users(email);
 create index if not exists app_users_device_id_idx on app_users(device_id);
 create index if not exists app_users_status_idx    on app_users(status);
+
+-- Add registration_ip column if it doesn't exist (safe migration)
+alter table app_users add column if not exists registration_ip text;
 
 -- Artists / Groups table
 create table if not exists artists (
