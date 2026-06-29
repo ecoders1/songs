@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import { usePlayer } from '@/context/PlayerContext';
 import { useUser } from '@/context/UserContext';
+import { useTheme, type Theme } from '@/context/ThemeContext';
 import { getArtistCache, setArtistCache } from '@/lib/dataCache';
 import InstallPrompt from '@/components/InstallPrompt';
 import type { Artist, Category } from '@/lib/types';
@@ -15,6 +16,8 @@ export default function HomePage() {
   const { t } = useLanguage();
   const { isOffline, offlineArtists, cacheAllSongs } = usePlayer();
   const { user } = useUser();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category>('new');
   const [artists, setArtists] = useState<Artist[]>(() => getArtistCache('new') || []);
   const [loading, setLoading] = useState(() => !getArtistCache('new'));
@@ -25,6 +28,14 @@ export default function HomePage() {
   const abortRef = useRef<AbortController | null>(null);
 
   void user; // used for auth guard in layout
+
+  // Close theme menu on outside click
+  useEffect(() => {
+    if (!showThemeMenu) return;
+    const handler = () => setShowThemeMenu(false);
+    setTimeout(() => document.addEventListener('click', handler), 0);
+    return () => document.removeEventListener('click', handler);
+  }, [showThemeMenu]);
 
   const CATEGORIES: { key: Category; label: string; emoji: string }[] = [
     { key: 'new',    label: t.newSongs,    emoji: '🎵' },
@@ -125,6 +136,60 @@ export default function HomePage() {
           {/* Right controls */}
           <div className="flex items-center gap-2">
 
+            {/* 🎨 Theme toggle */}
+            <div className="relative">
+              <button
+                onClick={() => setShowThemeMenu(!showThemeMenu)}
+                className="flex items-center justify-center w-8 h-8 rounded-full transition-all active:opacity-60"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}
+                aria-label="Change theme"
+              >
+                {resolvedTheme === 'dark' ? (
+                  <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="5"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" strokeLinecap="round"/>
+                  </svg>
+                )}
+              </button>
+
+              {/* Theme dropdown */}
+              {showThemeMenu && (
+                <div
+                  className="absolute right-0 top-10 z-50 rounded-2xl overflow-hidden shadow-2xl"
+                  style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', minWidth: 140 }}
+                >
+                  {([
+                    { key: 'light',  label: 'Light',  icon: '☀️' },
+                    { key: 'dark',   label: 'Dark',   icon: '🌙' },
+                    { key: 'system', label: 'System', icon: '⚙️' },
+                  ] as { key: Theme; label: string; icon: string }[]).map((opt, i, arr) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => { setTheme(opt.key); setShowThemeMenu(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium transition-all active:opacity-60"
+                      style={{
+                        color: theme === opt.key ? 'var(--gold)' : 'var(--text-1)',
+                        background: theme === opt.key ? 'rgba(212,175,55,0.08)' : 'transparent',
+                        borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                      }}
+                    >
+                      <span>{opt.icon}</span>
+                      <span>{opt.label}</span>
+                      {theme === opt.key && (
+                        <svg className="ml-auto" width="14" height="14" fill="none" stroke="#D4AF37" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* 🔒 Locked upload — frosted pill */}
             <button
               onClick={handleLockedClick}
@@ -192,7 +257,8 @@ export default function HomePage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm text-gray-800 outline-none"
             style={{
-              background: 'rgba(255,255,255,0.96)',
+              background: 'var(--input-bg)',
+              color: 'var(--input-text)',
               boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
               border: '1px solid rgba(255,255,255,0.5)',
             }}
@@ -223,7 +289,7 @@ export default function HomePage() {
                 className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-150"
                 style={active
                   ? { background: '#D4AF37', color: '#1a1a2e', boxShadow: '0 2px 10px rgba(212,175,55,0.45)' }
-                  : { background: 'white', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid rgba(0,0,0,0.05)' }}
+                  : { background: 'var(--pill-inactive-bg)', color: 'var(--pill-inactive-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid var(--pill-inactive-border)' }}
               >
                 <span className="text-sm leading-none">{cat.emoji}</span>
                 <span>{cat.label}</span>
@@ -248,8 +314,8 @@ export default function HomePage() {
           /* Skeleton cards */
           <div className="space-y-2.5">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-white"
-                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <div key={i} className="flex items-center gap-3 p-3 rounded-2xl"
+                style={{ background: 'var(--card-bg)', boxShadow: 'var(--card-shadow)' }}>
                 <div className="w-14 h-14 rounded-xl shimmer flex-shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-3.5 rounded-lg shimmer w-2/3" />
@@ -291,14 +357,14 @@ function ArtistCard({
       onClick={onPress}
       className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all duration-100 active:scale-98"
       style={{
-        background: 'white',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03)',
+        background: 'var(--card-bg)',
+        boxShadow: 'var(--card-shadow)',
       }}
     >
       {/* Avatar */}
       <div
         className="w-13 h-13 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden"
-        style={{ width: 52, height: 52, background: 'linear-gradient(135deg, #eeeef8, #e4e4f4)' }}
+        style={{ width: 52, height: 52, background: 'linear-gradient(135deg, var(--surface-2), var(--border))' }}
       >
         {artist.image_url ? (
           <img src={artist.image_url} alt={artist.name} className="w-full h-full object-cover" />

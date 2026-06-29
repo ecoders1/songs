@@ -4,6 +4,7 @@ import { PlayerProvider } from "@/context/PlayerContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { UserProvider } from "@/context/UserContext";
 import { PWAProvider } from "@/context/PWAContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export const metadata: Metadata = {
   title: "Apostolic Songs Afaan Oromo",
@@ -50,7 +51,9 @@ export default function RootLayout({
         <LanguageProvider>
           <UserProvider>
             <PWAProvider>
-              <PlayerProvider>{children}</PlayerProvider>
+              <ThemeProvider>
+                <PlayerProvider>{children}</PlayerProvider>
+              </ThemeProvider>
             </PWAProvider>
           </UserProvider>
         </LanguageProvider>

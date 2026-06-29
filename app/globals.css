@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-:root {
+:root,
+[data-theme="light"] {
   --gold:        #D4AF37;
   --gold-light:  #F0D060;
   --gold-dark:   #B8960C;
@@ -8,10 +9,42 @@
   --navy-mid:    #16213e;
   --bg:          #f2f2f7;
   --surface:     #ffffff;
+  --surface-2:   #f7f7fb;
   --border:      #e8e8f0;
   --text-1:      #111827;
   --text-2:      #6b7280;
   --text-3:      #9ca3af;
+  --card-bg:     #ffffff;
+  --card-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03);
+  --header-bg:   linear-gradient(175deg, #1a1a2e 0%, #16213e 100%);
+  --input-bg:    rgba(255,255,255,0.96);
+  --input-text:  #111827;
+  --pill-inactive-bg:    #ffffff;
+  --pill-inactive-color: #6b7280;
+  --pill-inactive-border: rgba(0,0,0,0.05);
+}
+
+[data-theme="dark"] {
+  --gold:        #D4AF37;
+  --gold-light:  #F0D060;
+  --gold-dark:   #B8960C;
+  --navy:        #1a1a2e;
+  --navy-mid:    #16213e;
+  --bg:          #0d0d18;
+  --surface:     #1a1a2e;
+  --surface-2:   #16213e;
+  --border:      #2a2a40;
+  --text-1:      #f1f1f5;
+  --text-2:      #a0a8b8;
+  --text-3:      #6b7280;
+  --card-bg:     #1e1e32;
+  --card-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
+  --header-bg:   linear-gradient(175deg, #0d0d18 0%, #12122a 100%);
+  --input-bg:    rgba(30,30,50,0.98);
+  --input-text:  #f1f1f5;
+  --pill-inactive-bg:    #1e1e32;
+  --pill-inactive-color: #a0a8b8;
+  --pill-inactive-border: rgba(255,255,255,0.07);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -83,7 +116,7 @@ input[type="range"]::-webkit-slider-thumb {
   100% { background-position:  200% 0; }
 }
 .shimmer {
-  background: linear-gradient(90deg, #f0f0f5 25%, #e6e6ec 50%, #f0f0f5 75%);
+  background: linear-gradient(90deg, var(--surface-2, #f0f0f5) 25%, var(--border, #e6e6ec) 50%, var(--surface-2, #f0f0f5) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
