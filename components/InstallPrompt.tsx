@@ -6,10 +6,9 @@ import { usePWA } from '@/context/PWAContext';
 
 /**
  * Full-screen install push shown right after sign-in.
- * - Android/Chrome: fires native "Add to Home Screen" prompt immediately,
- *   then shows a full-screen confirmation card.
- * - iOS Safari: full-screen card with step-by-step install instructions.
- * - Already installed / dismissed before: nothing shown.
+ * - Shows ONCE per device permanently (localStorage).
+ * - Android/Chrome: fires native prompt immediately.
+ * - iOS Safari: shows step-by-step instructions.
  */
 export default function InstallPrompt() {
   const { isInstalled, isIOS, triggerInstall } = usePWA();
@@ -19,33 +18,29 @@ export default function InstallPrompt() {
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
+    // Already installed as PWA
     if (isInstalled) return;
-
+    // Already installed or permanently dismissed on this device
+    if (localStorage.getItem('pwa_installed') === '1') return;
+    if (localStorage.getItem('pwa_dismissed') === '1') return;
+    // Only show right after sign-in
     const shouldShow = sessionStorage.getItem('show_install_prompt') === '1';
     if (!shouldShow) return;
-
     sessionStorage.removeItem('show_install_prompt');
 
     if (isIOS) {
-      // iOS — show instruction sheet
       setTimeout(() => setShowIOSGuide(true), 600);
     } else {
-      // Android/Chrome — immediately fire native browser install prompt
-      // This pops the "Add to Home Screen" dialog with zero extra taps.
-      // If prompt isn't available yet, fall back to showing the card.
       setTimeout(async () => {
         const outcome = await triggerInstall();
-        if (outcome === 'unavailable') {
-          // Prompt not ready — show the full-screen card as fallback
-          setShow(true);
-        } else if (outcome === 'dismissed') {
-          // User dismissed native prompt — show card so they can try again
-          setShow(true);
-        } else {
-          // accepted — installed directly, show success briefly
+        if (outcome === 'accepted') {
+          localStorage.setItem('pwa_installed', '1');
           setInstalled(true);
           setShow(true);
           setTimeout(() => setShow(false), 2500);
+        } else {
+          // dismissed or unavailable — show fallback card
+          setShow(true);
         }
       }, 600);
     }
@@ -58,23 +53,33 @@ export default function InstallPrompt() {
     const outcome = await triggerInstall();
     setInstalling(false);
     if (outcome === 'accepted') {
+      localStorage.setItem('pwa_installed', '1');
       setInstalled(true);
-      setTimeout(() => setShow(false), 2000);
+      setTimeout(() => setShow(false), 2500);
     } else if (outcome === 'unavailable') {
-      // Prompt not available — just close
       setShow(false);
     }
-    // if dismissed, stay open so user can try again or skip
   };
 
-  // ── Full-screen Android/Chrome install card ────────────────────────────────
+  // Permanently dismiss — never show again on this device
+  const handleDismiss = () => {
+    localStorage.setItem('pwa_dismissed', '1');
+    setShow(false);
+  };
+
+  const handleIOSDone = () => {
+    // Mark as done so it doesn't show again (user either installed or chose not to)
+    localStorage.setItem('pwa_dismissed', '1');
+    setShowIOSGuide(false);
+  };
+
+  // ── Android/Chrome full-screen card ───────────────────────────────────────
   if (show && !isInstalled) {
     return (
       <div
         className="fixed inset-0 z-[100] flex flex-col items-center justify-end"
         style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
       >
-        {/* Card slides up from bottom */}
         <div
           className="w-full rounded-t-3xl px-6 pt-6 pb-8 shadow-2xl"
           style={{
@@ -84,7 +89,6 @@ export default function InstallPrompt() {
           }}
         >
           {installed ? (
-            /* Success state */
             <div className="flex flex-col items-center py-6 gap-4">
               <div className="w-16 h-16 rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(34,197,94,0.15)', border: '2px solid #22C55E' }}>
@@ -99,10 +103,8 @@ export default function InstallPrompt() {
             </div>
           ) : (
             <>
-              {/* Drag handle */}
               <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />
 
-              {/* App info */}
               <div className="flex items-center gap-4 mb-5">
                 <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0"
                   style={{ border: '2px solid rgba(212,175,55,0.5)', boxShadow: '0 0 20px rgba(212,175,55,0.2)' }}>
@@ -122,7 +124,6 @@ export default function InstallPrompt() {
                 </div>
               </div>
 
-              {/* Features */}
               <div className="grid grid-cols-3 gap-2 mb-6">
                 {[
                   { icon: '🎵', label: 'Afaan Oromo' },
@@ -137,7 +138,6 @@ export default function InstallPrompt() {
                 ))}
               </div>
 
-              {/* Install button */}
               <button
                 onClick={handleInstall}
                 disabled={installing}
@@ -164,13 +164,12 @@ export default function InstallPrompt() {
                 )}
               </button>
 
-              {/* Skip */}
               <button
-                onClick={() => setShow(false)}
+                onClick={handleDismiss}
                 className="w-full mt-3 py-2.5 text-sm text-center rounded-xl transition-all active:opacity-60"
                 style={{ color: 'rgba(255,255,255,0.35)' }}
               >
-                Maybe later
+                Don't install
               </button>
             </>
           )}
@@ -179,7 +178,7 @@ export default function InstallPrompt() {
     );
   }
 
-  // ── Full-screen iOS instruction card ──────────────────────────────────────
+  // ── iOS instruction card ───────────────────────────────────────────────────
   if (showIOSGuide && !isInstalled) {
     return (
       <div
@@ -194,10 +193,8 @@ export default function InstallPrompt() {
             maxWidth: 480,
           }}
         >
-          {/* Drag handle */}
           <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />
 
-          {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0"
               style={{ border: '2px solid rgba(212,175,55,0.5)' }}>
@@ -209,7 +206,6 @@ export default function InstallPrompt() {
             </div>
           </div>
 
-          {/* Steps */}
           <div className="space-y-4 mb-6">
             <Step num={1}>
               Tap the{' '}
@@ -225,11 +221,10 @@ export default function InstallPrompt() {
               Scroll and tap <span className="font-bold text-white">"Add to Home Screen"</span>
             </Step>
             <Step num={3}>
-              Tap <span className="font-bold text-white">"Add"</span> — App is installed! 🎉
+              Tap <span className="font-bold text-white">"Add"</span> — done! 🎉
             </Step>
           </div>
 
-          {/* Arrow pointing down to Safari bar */}
           <div className="flex flex-col items-center mb-4 gap-1">
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Tap the share button below ↓</p>
             <svg width="20" height="20" fill="none" stroke="rgba(212,175,55,0.6)" strokeWidth="2" viewBox="0 0 24 24">
@@ -238,19 +233,18 @@ export default function InstallPrompt() {
           </div>
 
           <button
-            onClick={() => setShowIOSGuide(false)}
+            onClick={handleIOSDone}
             className="w-full py-3.5 rounded-2xl text-sm font-bold text-center transition-all active:scale-95"
             style={{ background: 'rgba(212,175,55,0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)' }}
           >
             Got it — I'll install it now
           </button>
-
           <button
-            onClick={() => setShowIOSGuide(false)}
+            onClick={handleIOSDone}
             className="w-full mt-2 py-2 text-sm text-center"
             style={{ color: 'rgba(255,255,255,0.3)' }}
           >
-            Maybe later
+            Don't install
           </button>
         </div>
       </div>
