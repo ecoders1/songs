@@ -12,7 +12,7 @@ import { usePWA } from '@/context/PWAContext';
  * - Already installed / dismissed before: nothing shown.
  */
 export default function InstallPrompt() {
-  const { canInstall, isInstalled, isIOS, triggerInstall } = usePWA();
+  const { isInstalled, isIOS, triggerInstall } = usePWA();
   const [show, setShow] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -26,14 +26,12 @@ export default function InstallPrompt() {
 
     sessionStorage.removeItem('show_install_prompt');
 
-    if (canInstall) {
-      // Android/Chrome — show full-screen card first, then trigger prompt on button tap
-      setTimeout(() => setShow(true), 600);
-    } else if (isIOS) {
+    if (isIOS) {
       // iOS — show instruction sheet
       setTimeout(() => setShowIOSGuide(true), 600);
     } else {
-      // Fallback (desktop or unsupported browser)
+      // Android/Chrome — show full-screen card
+      // The native prompt fires when user taps the Install button
       setTimeout(() => setShow(true), 600);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

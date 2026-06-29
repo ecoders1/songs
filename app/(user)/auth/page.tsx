@@ -4,14 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useUser, getDeviceId } from '@/context/UserContext';
-import { usePWA } from '@/context/PWAContext';
 
 type Mode = 'login' | 'register';
 
 export default function AuthPage() {
   const router = useRouter();
   const { user, loading, refetch } = useUser();
-  const { canInstall, triggerInstall } = usePWA();
   const [mode, setMode] = useState<Mode>('login');
 
   // Form fields
@@ -74,14 +72,9 @@ export default function AuthPage() {
 
       const status = data.user?.status;
 
-      // Trigger PWA install prompt right after sign-in
-      // Works on Android/Chrome. For iOS we set a flag so home page shows instructions.
-      if (canInstall) {
-        triggerInstall().catch(() => {});
-      } else {
-        // Mark that we should show iOS install guide on next page
-        sessionStorage.setItem('show_install_prompt', '1');
-      }
+      // Always set the flag — InstallPrompt on home page handles the full flow
+      // (shows full-screen card first, then triggers native prompt on button tap)
+      sessionStorage.setItem('show_install_prompt', '1');
 
       if (status === 'approved') {
         router.replace('/home');
