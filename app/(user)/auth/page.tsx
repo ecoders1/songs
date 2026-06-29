@@ -101,7 +101,7 @@ export default function AuthPage() {
           className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-4"
           style={{ border: '2px solid rgba(212,175,55,0.5)', boxShadow: '0 0 30px rgba(212,175,55,0.2)' }}
         >
-          <Image src="/icons/icon.png" alt="Apostolic Songs" width={80} height={80} className="w-full h-full object-cover" priority />
+          <Image src="/icons/icon-192.png" alt="Apostolic Songs" width={80} height={80} className="w-full h-full object-cover" priority />
         </div>
         <h1 className="text-2xl font-extrabold text-white">Apostolic Songs</h1>
         <p className="text-sm mt-1" style={{ color: '#D4AF37' }}>Afaan Oromo · Church Music</p>

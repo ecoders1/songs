@@ -125,7 +125,7 @@ export default function HomePage() {
               className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
               style={{ border: '1.5px solid rgba(212,175,55,0.45)', boxShadow: '0 0 12px rgba(212,175,55,0.15)' }}
             >
-              <Image src="/icons/icon.png" alt="Logo" width={36} height={36} className="w-full h-full object-cover" />
+              <Image src="/icons/icon-192.png" alt="Logo" width={36} height={36} className="w-full h-full object-cover" />
             </div>
             <div>
               <p className="text-white font-bold text-sm leading-tight tracking-tight">Apostolic Songs</p>

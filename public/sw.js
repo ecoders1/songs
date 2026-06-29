@@ -10,7 +10,7 @@ const PERMANENT_CACHES = [AUDIO_CACHE, API_CACHE, IMAGE_CACHE];
 const STATIC_ASSETS = [
   '/', '/home', '/library', '/playlist', '/settings', '/player',
   '/auth', '/pending',
-  '/icons/icon.png', '/manifest.json',
+  '/icons/icon-192.png', '/icons/icon-512.png', '/manifest.json',
 ];
 
 // ─── Install ──────────────────────────────────────────────────────────────────

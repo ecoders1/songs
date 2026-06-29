@@ -16,8 +16,11 @@ export const metadata: Metadata = {
     title: "Apostolic Songs",
   },
   icons: {
-    icon: "/icons/icon.png",
-    apple: "/icons/icon.png",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/icon-192.png",
   },
 };
 
@@ -42,7 +45,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         {/* Preload critical assets for instant load */}
-        <link rel="preload" href="/icons/icon.png" as="image" type="image/png" />
+        <link rel="preload" href="/icons/icon-192.png" as="image" type="image/png" />
         {/* DNS prefetch for Supabase */}
         <link rel="dns-prefetch" href="https://lzznufriodxghmksokts.supabase.co" />
         <link rel="preconnect" href="https://lzznufriodxghmksokts.supabase.co" crossOrigin="anonymous" />

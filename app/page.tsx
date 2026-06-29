@@ -91,7 +91,7 @@ export default function SplashScreen() {
       <div className="relative mb-5 z-10">
         <div className="w-32 h-32 rounded-full overflow-hidden flex items-center justify-center"
           style={{ boxShadow: '0 0 50px rgba(212,175,55,0.35), 0 16px 40px rgba(0,0,0,0.5)', border: '3px solid rgba(212,175,55,0.5)' }}>
-          <Image src="/icons/icon.png" alt="Apostolic Songs" width={128} height={128} priority className="w-full h-full object-cover" />
+          <Image src="/icons/icon-192.png" alt="Apostolic Songs" width={128} height={128} priority className="w-full h-full object-cover" />
         </div>
         <div className="absolute inset-0 rounded-full"
           style={{ border: '2px solid rgba(212,175,55,0.4)', animation: 'ping 2s cubic-bezier(0,0,0.2,1) infinite' }} />

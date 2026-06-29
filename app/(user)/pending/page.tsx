@@ -48,7 +48,7 @@ export default function PendingPage() {
         className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-6"
         style={{ border: '2px solid rgba(212,175,55,0.5)' }}
       >
-        <Image src="/icons/icon.png" alt="Apostolic Songs" width={80} height={80} className="w-full h-full object-cover" />
+        <Image src="/icons/icon-192.png" alt="Apostolic Songs" width={80} height={80} className="w-full h-full object-cover" />
       </div>
 
       {isRejected ? (
