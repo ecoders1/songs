@@ -110,15 +110,16 @@ export default function AuthPage() {
       {/* Card */}
       <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
         {/* Tab switcher */}
-        <div className="flex rounded-xl overflow-hidden mb-5 p-1 gap-1" style={{ background: '#f0f0f8' }}>
+        <div className="flex rounded-xl overflow-hidden mb-5 p-1 gap-1" style={{ background: '#e8e8f0' }}>
           {(['login', 'register'] as Mode[]).map((m) => (
             <button
               key={m}
               onClick={() => { setMode(m); setError(''); setSuccess(''); }}
               className="flex-1 py-2.5 text-sm font-bold transition-all rounded-lg"
               style={{
-                background: mode === m ? '#1a1a2e' : 'transparent',
-                color:      mode === m ? '#D4AF37' : '#1a1a2e',
+                background: mode === m ? '#000000' : '#ffffff',
+                color:      mode === m ? '#ffffff' : '#000000',
+                boxShadow:  mode === m ? '0 2px 8px rgba(0,0,0,0.25)' : 'none',
               }}
             >
               {m === 'login' ? 'Sign In' : 'Sign Up'}
