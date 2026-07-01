@@ -1,1 +1,75 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#fff"/><text x="256" y="155" font-family="Arial Black,Arial,sans-serif" font-size="62" font-weight="900" fill="#1a237e" text-anchor="middle" letter-spacing="2">APOSTOLIC</text><text x="68" y="238" font-family="Arial,sans-serif" font-size="38" fill="#1a237e">♩</text><text x="434" y="242" font-family="Arial,sans-serif" font-size="40" fill="#1a237e">𝄞</text><text x="256" y="248" font-family="Arial Black,Arial,sans-serif" font-size="72" font-weight="900" fill="#c62828" text-anchor="middle" letter-spacing="4">SONGS</text><line x1="80" y1="272" x2="432" y2="272" stroke="#1a237e" stroke-width="3"/><text x="256" y="322" font-family="Arial Black,Arial,sans-serif" font-size="46" font-weight="900" fill="#2e7d32" text-anchor="middle" letter-spacing="2">AFAAN OROMOO</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Background gradient: green left → blue right -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1db800"/>
+      <stop offset="55%" stop-color="#22a800"/>
+      <stop offset="100%" stop-color="#1565c0"/>
+    </linearGradient>
+    <!-- Circle stroke gradient -->
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4cff00"/>
+      <stop offset="100%" stop-color="#2979ff"/>
+    </linearGradient>
+    <!-- Gold gradient for S -->
+    <linearGradient id="gold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFD600"/>
+      <stop offset="100%" stop-color="#FF8F00"/>
+    </linearGradient>
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.35)"/>
+    </filter>
+    <!-- White text shadow -->
+    <filter id="wshadow" x="-5%" y="-5%" width="115%" height="130%">
+      <feDropShadow dx="1" dy="3" stdDeviation="3" flood-color="rgba(0,60,180,0.5)"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Outer glow circle -->
+  <circle cx="256" cy="230" r="195" fill="none" stroke="url(#ring)" stroke-width="9" opacity="0.9"/>
+  <!-- Inner sweep arc (decorative left) -->
+  <path d="M100,130 Q60,230 110,340" fill="none" stroke="#6eff30" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+  <!-- Inner sweep arc (decorative right) -->
+  <path d="M400,115 Q460,230 395,345" fill="none" stroke="#448aff" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- "A" — white with blue drop-shadow -->
+  <text x="140" y="330"
+    font-family="Arial Black, Arial, sans-serif"
+    font-size="240"
+    font-weight="900"
+    fill="white"
+    filter="url(#wshadow)"
+    letter-spacing="-8">A</text>
+
+  <!-- "S" — gold/yellow with shadow, overlapping A -->
+  <text x="268" y="330"
+    font-family="Arial Black, Arial, sans-serif"
+    font-size="240"
+    font-weight="900"
+    fill="url(#gold)"
+    filter="url(#shadow)"
+    letter-spacing="-8">S</text>
+
+  <!-- "Afaan" white text -->
+  <text x="108" y="415"
+    font-family="Arial Black, Arial, sans-serif"
+    font-size="58"
+    font-weight="900"
+    fill="white"
+    filter="url(#wshadow)">Afaan</text>
+
+  <!-- "Oromo" gold text -->
+  <text x="270" y="415"
+    font-family="Arial Black, Arial, sans-serif"
+    font-size="58"
+    font-weight="900"
+    fill="#FFD600"
+    filter="url(#shadow)">Oromo</text>
+
+  <!-- Underline -->
+  <line x1="108" y1="425" x2="404" y2="425" stroke="url(#ring)" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+</svg>
