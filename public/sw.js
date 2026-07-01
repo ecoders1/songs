@@ -1,5 +1,5 @@
 // ─── Cache names ─────────────────────────────────────────────────────────────
-const VERSION     = 'v9';
+const VERSION     = 'v10';
 const CACHE_NAME  = `faarfannaa-${VERSION}`;
 const AUDIO_CACHE = 'faarfannaa-audio';   // permanent — never deleted
 const API_CACHE   = 'faarfannaa-api';     // permanent
@@ -10,7 +10,7 @@ const PERMANENT_CACHES = [AUDIO_CACHE, API_CACHE, IMAGE_CACHE];
 const STATIC_ASSETS = [
   '/', '/home', '/library', '/playlist', '/settings', '/player',
   '/auth', '/pending',
-  '/icons/icon-192.png', '/icons/icon-512.png', '/manifest.json',
+  '/icons/icon.svg', '/manifest.json',
 ];
 
 // ─── Install ──────────────────────────────────────────────────────────────────
@@ -285,25 +285,42 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'CACHE_ALL_SONGS') {
     const { songs } = event.data;
     if (!Array.isArray(songs)) return;
-    Promise.all([caches.open(AUDIO_CACHE), caches.open(IMAGE_CACHE)])
-      .then(([audioCache, imgCache]) => {
-        for (const song of songs) {
-          if (song.audio_url) {
-            audioCache.match(song.audio_url).then((existing) => {
-              if (!existing)
-                fetch(new Request(song.audio_url))
-                  .then((r) => { if (r.ok) audioCache.put(song.audio_url, r); })
-                  .catch(() => {});
-            });
-          }
-          if (song.image_url) {
-            imgCache.match(song.image_url).then((existing) => {
-              if (!existing)
-                fetch(song.image_url).then((r) => { if (r.ok) imgCache.put(song.image_url, r); }).catch(() => {});
-            });
+
+    // Process sequentially in small batches to avoid saturating the connection.
+    // A 40ms gap between fetches keeps memory pressure low on mobile devices.
+    (async () => {
+      const [audioCache, imgCache] = await Promise.all([
+        caches.open(AUDIO_CACHE),
+        caches.open(IMAGE_CACHE),
+      ]);
+
+      for (const song of songs) {
+        // Audio — skip if already cached
+        if (song.audio_url) {
+          const exists = await audioCache.match(song.audio_url);
+          if (!exists) {
+            try {
+              const r = await fetch(new Request(song.audio_url));
+              if (r.ok) await audioCache.put(song.audio_url, r);
+            } catch { /* offline — will cache next time */ }
           }
         }
-      });
+
+        // Image
+        if (song.image_url) {
+          const exists = await imgCache.match(song.image_url);
+          if (!exists) {
+            try {
+              const r = await fetch(song.image_url);
+              if (r.ok) await imgCache.put(song.image_url, r);
+            } catch { /* ignore */ }
+          }
+        }
+
+        // Small yield between songs to keep SW responsive
+        await new Promise((r) => setTimeout(r, 40));
+      }
+    })();
   }
 
   if (event.data?.type === 'SKIP_WAITING') {

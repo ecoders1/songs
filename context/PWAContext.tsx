@@ -1,6 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import React, {
+  createContext, useContext, useEffect, useRef, useState, useCallback,
+} from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -11,29 +13,37 @@ interface PWAContextType {
   canInstall: boolean;
   isInstalled: boolean;
   isIOS: boolean;
-  triggerInstall: () => Promise<'accepted' | 'dismissed' | 'unavailable'>;
+  /**
+   * Trigger the native install prompt.
+   * If the browser hasn't fired beforeinstallprompt yet, this waits up to
+   * `timeoutMs` milliseconds for it — solving the race condition where the
+   * install prompt is called immediately after page load.
+   */
+  triggerInstall: (timeoutMs?: number) => Promise<'accepted' | 'dismissed' | 'unavailable'>;
 }
 
 const PWAContext = createContext<PWAContextType>({
-  canInstall: false,
-  isInstalled: false,
-  isIOS: false,
+  canInstall:     false,
+  isInstalled:    false,
+  isIOS:          false,
   triggerInstall: async () => 'unavailable',
 });
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
-  // Use a ref so triggerInstall always has the latest prompt even if state update is pending
-  const promptRef = useRef<BeforeInstallPromptEvent | null>(null);
-  const [canInstall, setCanInstall] = useState(false);
+  const promptRef   = useRef<BeforeInstallPromptEvent | null>(null);
+  // Resolvers waiting for beforeinstallprompt to fire
+  const waitersRef  = useRef<Array<(e: BeforeInstallPromptEvent) => void>>([]);
+
+  const [canInstall,  setCanInstall]  = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+  const [isIOS,       setIsIOS]       = useState(false);
 
   useEffect(() => {
-    // Detect iOS
+    // iOS detection
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     setIsIOS(ios);
 
-    // Already running as installed PWA
+    // Already installed as standalone PWA
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
       return;
@@ -41,14 +51,19 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
 
     const handler = (e: Event) => {
       e.preventDefault();
-      promptRef.current = e as BeforeInstallPromptEvent;
+      const bip = e as BeforeInstallPromptEvent;
+      promptRef.current = bip;
       setCanInstall(true);
+      // Notify any callers that were waiting for the prompt
+      waitersRef.current.forEach((resolve) => resolve(bip));
+      waitersRef.current = [];
     };
 
     const installedHandler = () => {
       setIsInstalled(true);
       setCanInstall(false);
       promptRef.current = null;
+      localStorage.setItem('pwa_installed', '1');
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -60,17 +75,42 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const triggerInstall = useCallback(async (): Promise<'accepted' | 'dismissed' | 'unavailable'> => {
-    // Always read from ref — guaranteed to be current even mid-render
-    const prompt = promptRef.current;
-    if (!prompt) return 'unavailable';
-    await prompt.prompt();
-    const { outcome } = await prompt.userChoice;
-    promptRef.current = null;
-    setCanInstall(false);
-    if (outcome === 'accepted') setIsInstalled(true);
-    return outcome;
-  }, []);
+  const triggerInstall = useCallback(
+    async (timeoutMs = 6000): Promise<'accepted' | 'dismissed' | 'unavailable'> => {
+      // Already have the prompt — fire immediately
+      let bip = promptRef.current;
+
+      if (!bip) {
+        // Wait for beforeinstallprompt up to timeoutMs
+        bip = await new Promise<BeforeInstallPromptEvent | null>((resolve) => {
+          const timer = setTimeout(() => {
+            // Remove this waiter and resolve null (timeout)
+            waitersRef.current = waitersRef.current.filter((r) => r !== resolver);
+            resolve(null);
+          }, timeoutMs);
+
+          const resolver = (e: BeforeInstallPromptEvent) => {
+            clearTimeout(timer);
+            resolve(e);
+          };
+          waitersRef.current.push(resolver);
+        });
+      }
+
+      if (!bip) return 'unavailable';
+
+      await bip.prompt();
+      const { outcome } = await bip.userChoice;
+      promptRef.current = null;
+      setCanInstall(false);
+      if (outcome === 'accepted') {
+        setIsInstalled(true);
+        localStorage.setItem('pwa_installed', '1');
+      }
+      return outcome;
+    },
+    [],
+  );
 
   return (
     <PWAContext.Provider value={{ canInstall, isInstalled, isIOS, triggerInstall }}>
