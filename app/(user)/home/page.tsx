@@ -202,7 +202,7 @@ function HomePage() {
               <Image src="/icons/icon-192.png" alt="Logo" width={36} height={36} className="w-full h-full object-cover" />
             </div>
             <div>
-              <p className="text-white font-bold text-sm leading-tight tracking-tight">Apostolic Songs</p>
+              <p className="text-white font-bold text-sm leading-tight tracking-tight">Faarfannaa</p>
               <p className="text-xs leading-tight" style={{ color: '#D4AF37' }}>Afaan Oromo</p>
             </div>
           </div>

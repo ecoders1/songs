@@ -33,14 +33,14 @@ export default function PWAInstallBanner() {
           className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
           style={{ background: '#D4AF37' }}
         >
-          <img src="/icons/icon-192.png" alt="Apostolic Songs" className="w-full h-full object-cover" />
+          <img src="/icons/icon-192.png" alt="Faarfannaa Afaan Oromo" className="w-full h-full object-cover" />
         </div>
 
         {/* Text */}
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-white text-sm">Install Apostolic Songs</p>
+          <p className="font-bold text-white text-sm">Install Faarfannaa Afaan Oromo</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            Apostolic Songs Afaan Oromoo
+            Faarfannaa Afaan Oromo
           </p>
           <p className="text-xs mt-0.5" style={{ color: '#D4AF37' }}>
             Afaan Oromo · Works offline
