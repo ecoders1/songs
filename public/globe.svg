@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 540">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1db800"/>
+      <stop offset="55%" stop-color="#22a800"/>
+      <stop offset="100%" stop-color="#1565c0"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4cff00"/>
+      <stop offset="100%" stop-color="#2979ff"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFD600"/>
+      <stop offset="100%" stop-color="#FF8F00"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.35)"/>
+    </filter>
+    <filter id="wshadow">
+      <feDropShadow dx="1" dy="3" stdDeviation="4" flood-color="rgba(0,60,180,0.5)"/>
+    </filter>
+  </defs>
+
+  <rect width="1080" height="540" fill="url(#bg)"/>
+
+  <circle cx="540" cy="230" r="190" fill="none" stroke="url(#ring)" stroke-width="9" opacity="0.9"/>
+  <path d="M310,100 Q258,230 315,360" fill="none" stroke="#6eff30" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+  <path d="M758,92 Q825,230 755,362" fill="none" stroke="#448aff" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+
+  <text x="320" y="345"
+    font-family="Arial Black,Arial,sans-serif"
+    font-size="248" font-weight="900"
+    fill="white" filter="url(#wshadow)" letter-spacing="-8">A</text>
+
+  <text x="555" y="345"
+    font-family="Arial Black,Arial,sans-serif"
+    font-size="248" font-weight="900"
+    fill="url(#gold)" filter="url(#shadow)" letter-spacing="-8">S</text>
+
+  <text x="295" y="445"
+    font-family="Arial Black,Arial,sans-serif"
+    font-size="66" font-weight="900"
+    fill="white" filter="url(#wshadow)">Afaan</text>
+
+  <text x="530" y="445"
+    font-family="Arial Black,Arial,sans-serif"
+    font-size="66" font-weight="900"
+    fill="#FFD600" filter="url(#shadow)">Oromo</text>
+
+  <line x1="295" y1="458" x2="785" y2="458" stroke="url(#ring)" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+</svg>

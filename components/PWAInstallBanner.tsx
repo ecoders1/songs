@@ -1,0 +1,77 @@
+'use client';
+
+import { useState } from 'react';
+import { usePWA } from '@/context/PWAContext';
+
+export default function PWAInstallBanner() {
+  const { canInstall, isInstalled, triggerInstall } = usePWA();
+  const [dismissed, setDismissed] = useState(false);
+  const [installing, setInstalling] = useState(false);
+
+  // Hide if already installed, dismissed, or prompt not available
+  if (isInstalled || dismissed || !canInstall) return null;
+
+  const handleInstall = async () => {
+    setInstalling(true);
+    await triggerInstall();
+    setInstalling(false);
+  };
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    sessionStorage.setItem('pwa_banner_dismissed', '1');
+  };
+
+  return (
+    <div
+      className="fixed bottom-20 left-3 right-3 z-50 rounded-2xl p-4 shadow-2xl fade-in"
+      style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%)', border: '1px solid rgba(212,175,55,0.3)' }}
+    >
+      <div className="flex items-center gap-3">
+        {/* Icon */}
+        <div
+          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+          style={{ background: '#D4AF37' }}
+        >
+          <img src="/icons/icon-192.png" alt="Apostolic Songs" className="w-full h-full object-cover" />
+        </div>
+
+        {/* Text */}
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-white text-sm">Install Apostolic Songs</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            Apostolic Songs Afaan Oromoo
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: '#D4AF37' }}>
+            Afaan Oromo · Works offline
+          </p>
+        </div>
+
+        {/* Dismiss */}
+        <button
+          onClick={handleDismiss}
+          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: 'rgba(255,255,255,0.1)' }}
+          aria-label="Dismiss"
+        >
+          <svg width="12" height="12" fill="white" viewBox="0 0 24 24">
+            <path d="M18 6L6 18M6 6l12 12" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Install button */}
+      <button
+        onClick={handleInstall}
+        disabled={installing}
+        className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+        style={{ background: installing ? '#e0c070' : '#D4AF37', color: '#1a1a2e', opacity: installing ? 0.8 : 1 }}
+      >
+        <svg width="16" height="16" fill="none" stroke="#1a1a2e" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        {installing ? 'Installing...' : 'Install App — Free'}
+      </button>
+    </div>
+  );
+}

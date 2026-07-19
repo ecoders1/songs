@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+:root,
+[data-theme="light"] {
+  --gold:        #D4AF37;
+  --gold-light:  #F0D060;
+  --gold-dark:   #B8960C;
+  --navy:        #1a1a2e;
+  --navy-mid:    #16213e;
+  --bg:          #f2f2f7;
+  --surface:     #ffffff;
+  --surface-2:   #f7f7fb;
+  --border:      #e8e8f0;
+  --text-1:      #111827;
+  --text-2:      #6b7280;
+  --text-3:      #9ca3af;
+  --card-bg:     #ffffff;
+  --card-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03);
+  --header-bg:   linear-gradient(175deg, #1a1a2e 0%, #16213e 100%);
+  --input-bg:    rgba(255,255,255,0.96);
+  --input-text:  #111827;
+  --pill-inactive-bg:    #ffffff;
+  --pill-inactive-color: #6b7280;
+  --pill-inactive-border: rgba(0,0,0,0.05);
+}
+
+[data-theme="dark"] {
+  --gold:        #D4AF37;
+  --gold-light:  #F0D060;
+  --gold-dark:   #B8960C;
+  --navy:        #1a1a2e;
+  --navy-mid:    #16213e;
+  --bg:          #0d0d18;
+  --surface:     #1a1a2e;
+  --surface-2:   #16213e;
+  --border:      #2a2a40;
+  --text-1:      #f1f1f5;
+  --text-2:      #a0a8b8;
+  --text-3:      #6b7280;
+  --card-bg:     #1e1e32;
+  --card-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
+  --header-bg:   linear-gradient(175deg, #0d0d18 0%, #12122a 100%);
+  --input-bg:    rgba(30,30,50,0.98);
+  --input-text:  #f1f1f5;
+  --pill-inactive-bg:    #1e1e32;
+  --pill-inactive-color: #a0a8b8;
+  --pill-inactive-border: rgba(255,255,255,0.07);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html { background: var(--navy); }   /* prevent white flash between pages */
+
+body {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+main { will-change: contents; }
+
+button, a { touch-action: manipulation; cursor: pointer; }
+
+* {
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  -webkit-touch-callout: none;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 3px; height: 3px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: #d0d0e0; border-radius: 99px; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Range input ───────────────────────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--border);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+}
+
+/* ── Frosted glass helper ──────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+.glass-dark {
+  background: rgba(26, 26, 46, 0.82);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* ── Shimmer loading skeleton ──────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--surface-2, #f0f0f5) 25%, var(--border, #e6e6ec) 50%, var(--surface-2, #f0f0f5) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Animations ────────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.fade-in { animation: fadeIn 0.22s ease forwards; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 1;   transform: scale(1);    }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.slide-up { animation: slideUp 0.18s ease forwards; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; }
+
+@keyframes pulseScale {
+  0%, 100% { transform: scale(1);    opacity: 1;   }
+  50%       { transform: scale(1.15); opacity: 0.6; }
+}
+
+/* Breathing dot used in the online/offline pill */
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6);  }
+  50%       { box-shadow: 0 0 0 4px rgba(34,197,94,0);  }
+}
+.dot-online {
+  animation: breathe 2.2s ease-in-out infinite;
+}
+
+/* ── Utility ───────────────────────────────────────────────────────────────── */
+.gold-gradient {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold-dark) 100%);
+}
+
+.active\:scale-98:active { transform: scale(0.98); }
+.active\:scale-95:active { transform: scale(0.95); }
+
+img { display: block; }
+
+/* ── Card shadow system ────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+.card-hover:active {
+  box-shadow: 0 0 0 rgba(0,0,0,0);
+  transform: scale(0.985);
+}
+
+/* ── Input / textarea base — always readable typed text ───────────────────── */
+input:not([type="range"]),
+textarea,
+select {
+  color: #111827;
+  background-color: #ffffff;
+  caret-color: #D4AF37;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
+/* Dark-theme overrides */
+[data-theme="dark"] input:not([type="range"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  color: #f1f1f5;
+  background-color: #1e1e32;
+  caret-color: #D4AF37;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #6b7280;
+}

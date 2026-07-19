@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200">
+  <rect width="600" height="200" fill="white"/>
+
+  <!-- Music note left -->
+  <text x="38" y="120" font-family="serif" font-size="38" fill="#1a1a8c" opacity="0.7">♩</text>
+
+  <!-- Music note right (treble clef style) -->
+  <text x="545" y="120" font-family="serif" font-size="38" fill="#1a1a8c" opacity="0.7">𝄞</text>
+
+  <!-- APOSTOLIC -->
+  <text x="300" y="72"
+    font-family="Arial Black, Impact, sans-serif"
+    font-weight="900"
+    font-size="62"
+    fill="#1a1a8c"
+    text-anchor="middle"
+    letter-spacing="2">APOSTOLIC</text>
+
+  <!-- SONGS -->
+  <text x="300" y="132"
+    font-family="Arial Black, Impact, sans-serif"
+    font-weight="900"
+    font-size="68"
+    fill="#cc1a1a"
+    text-anchor="middle"
+    letter-spacing="4">SONGS</text>
+
+  <!-- Divider line -->
+  <line x1="60" y1="148" x2="540" y2="148" stroke="#1a1a8c" stroke-width="2.5"/>
+
+  <!-- AFAAN OROMOO -->
+  <text x="300" y="186"
+    font-family="Arial Black, Impact, sans-serif"
+    font-weight="900"
+    font-size="46"
+    fill="#1a7a1a"
+    text-anchor="middle"
+    letter-spacing="3">AFAAN OROMOO</text>
+</svg>
