@@ -118,10 +118,12 @@ INSERT INTO artists (id, name, bio, is_group, category) VALUES
   ('00000000-0000-0000-0000-000000000013', 'Addissuu Tadalaa','Faarfataa Afaan Oromoo durii',     false, 'old'),
   ('00000000-0000-0000-0000-000000000014', 'Ashu Adola',      'Faarfataa Afaan Oromoo durii',     false, 'old'),
   ('00000000-0000-0000-0000-000000000015', 'Lookoo',          'Faarfataa / Garee Afaan Oromoo',   false, 'old'),
+  ('83d3ace2-6f62-4240-bd73-8bfe6b04231f', 'Asaafa Culuuqqe', 'Faarfataa Afaan Oromoo durii',    false, 'old'),
 
   -- ── Group / Choir ──────────────────────────────────────────────────────────
   ('00000000-0000-0000-0000-000000000002', 'Group Faarfannaa','Garee faarfannaa waldaa',          true,  'group'),
-  ('00000000-0000-0000-0000-000000000004', 'Choir Apostolic', 'Garee faarfannaa Apostolic',       true,  'group')
+  ('00000000-0000-0000-0000-000000000004', 'Choir Apostolic', 'Garee faarfannaa Apostolic',       true,  'group'),
+  ('f602c2a3-1ff0-4927-ac7e-3f93ecd59b68', 'Addaa Hinbaanu',  'Garee faarfannaa Afaan Oromoo',   true,  'group')
 ON CONFLICT (id) DO NOTHING;
 
 -- ── Placeholder songs (replace audio_url values with real Supabase storage URLs) ──
