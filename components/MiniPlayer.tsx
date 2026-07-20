@@ -47,6 +47,8 @@ export default function MiniPlayer() {
         >
           {currentSong.image_url ? (
             <img src={currentSong.image_url} alt={currentSong.title} className="w-full h-full object-cover" />
+          ) : currentSong.artist?.image_url ? (
+            <img src={currentSong.artist.image_url} alt={currentSong.artist.name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <svg width="15" height="15" fill="none" stroke="#D4AF37" strokeWidth="1.8" viewBox="0 0 24 24">

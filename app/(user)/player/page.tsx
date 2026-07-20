@@ -120,8 +120,11 @@ export default function PlayerPage() {
             {currentSong.image_url ? (
               <img src={currentSong.image_url} alt={currentSong.title}
                 className="w-full h-full object-cover" />
+            ) : currentSong.artist?.image_url ? (
+              <img src={currentSong.artist.image_url} alt={currentSong.artist.name}
+                className="w-full h-full object-cover" />
             ) : (
-              <Image src="/icons/icon-192.png" alt="Apostolic Songs"
+              <Image src="/icons/icon-192.png" alt="Faarfannaa Afaan Oromo"
                 width={140} height={140} className="w-36 h-36 opacity-80" />
             )}
           </div>
