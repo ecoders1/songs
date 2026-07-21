@@ -164,6 +164,7 @@ export default function SettingsPage() {
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-gray-50"
+              style={{ borderBottom: '1px solid #f0f0f8' }}
             >
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#005fa3' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
@@ -173,6 +174,25 @@ export default function SettingsPage() {
               <div className="flex-1">
                 <p className="font-medium text-gray-800">{t.telegramChannel}</p>
                 <p className="text-xs text-gray-400">@aposotolicchurch</p>
+              </div>
+              <svg width="16" height="16" fill="none" stroke="#ccc" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+            <a
+              href="https://m.youtube.com/@oro_waliif"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-gray-50"
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#FF0000' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                  <path d="M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 00.5 6.2 31 31 0 000 12a31 31 0 00.5 5.8 3 3 0 002.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 002.1-2.1A31 31 0 0024 12a31 31 0 00-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-800">YouTube</p>
+                <p className="text-xs text-gray-400">Oro Waliif</p>
               </div>
               <svg width="16" height="16" fill="none" stroke="#ccc" strokeWidth="2" viewBox="0 0 24 24">
                 <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
