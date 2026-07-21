@@ -163,19 +163,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setCurrentSong(song);
     setQueue(newQueue.filter((s) => s.id !== song.id));
     audio.src = song.audio_url;
-    // Start playback — works offline if the SW has the audio cached
-    audio.play().catch(() => {
-      // Play failed (e.g. audio not cached yet while offline) — mark as not playing
-      // but keep the song loaded so the user can retry or go online
-      setIsPlaying(false);
-    });
-    setIsPlaying(true);
+    audio.load(); // force reload so SW cache is checked
+    audio.play()
+      .then(() => setIsPlaying(true))
+      .catch(() => {
+        // Audio not cached yet or network error — stay paused but keep song loaded
+        setIsPlaying(false);
+      });
     // Tell SW to cache this audio file immediately
     sendToSW({ type: 'CACHE_AUDIO', url: song.audio_url });
   }, [sendToSW]);
 
   const pauseSong  = useCallback(() => { audioRef.current?.pause(); setIsPlaying(false); }, []);
-  const resumeSong = useCallback(() => { audioRef.current?.play().catch(() => {}); setIsPlaying(true); }, []);
+  const resumeSong = useCallback(() => {
+    audioRef.current?.play()
+      .then(() => setIsPlaying(true))
+      .catch(() => setIsPlaying(false));
+  }, []);
 
   const nextSong = useCallback(() => {
     setQueue((prev) => {
@@ -183,8 +187,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const [next, ...rest] = prev;
       setCurrentSong(next);
       const audio = audioRef.current;
-      if (audio) { audio.src = next.audio_url; audio.play().catch(() => {}); }
-      setIsPlaying(true);
+      if (audio) {
+        audio.src = next.audio_url;
+        audio.load();
+        audio.play()
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
+      }
       sendToSW({ type: 'CACHE_AUDIO', url: next.audio_url });
       return rest;
     });
@@ -225,17 +234,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
     if (!songs.length) return;
 
-    // 1. Persist song metadata to IDB so artist page works fully offline
+    // Persist song + artist metadata to IDB — enables full offline browsing
     saveToIDB('songs', songs).catch(() => {});
     setOfflineSongs(songs);
 
-    // 2. Tell SW to download all audio + images in background
-    sendToSW({
-      type: 'CACHE_ALL_SONGS',
-      songs: songs.map((s) => ({ audio_url: s.audio_url, image_url: s.image_url })),
-    });
+    // Cache artist images only (small files, not audio blobs)
+    // Audio is cached on-demand when a song is played — avoids 128 requests at startup
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      const imageUrls = [...new Set(
+        songs
+          .map((s) => s.image_url || s.artist?.image_url || null)
+          .filter(Boolean) as string[]
+      )];
+      if (imageUrls.length) {
+        sendToSW({ type: 'CACHE_IMAGES', urls: imageUrls });
+      }
+    }
 
-    // 3. Mark which songs are already cached (for UI indicators)
+    // Mark which songs are already cached for UI indicators
     if ('caches' in window) {
       caches.open('faarfannaa-audio').then(async (cache) => {
         const cached = new Set<string>();

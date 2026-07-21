@@ -59,12 +59,14 @@ self.addEventListener('activate', (event) => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function isAudioUrl(url) {
-  return (
-    url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac)$/i) ||
-    (url.hostname.includes('supabase') && url.pathname.includes('/storage/') &&
-      (url.pathname.includes('/audio/') ||
-       url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac)$/i)))
-  );
+  // Explicit audio file extensions
+  if (url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac|mp4|opus|webm)$/i)) return true;
+  // Supabase storage audio bucket — any file under /storage/v1/object/*/audio/*
+  if (url.hostname.includes('supabase') && url.pathname.includes('/storage/')) {
+    if (url.pathname.includes('/audio/')) return true;
+    if (url.pathname.match(/\.(mp3|m4a|ogg|wav|aac|flac|mp4|opus|webm)$/i)) return true;
+  }
+  return false;
 }
 
 function isImageUrl(url) {
@@ -248,6 +250,23 @@ self.addEventListener('fetch', (event) => {
 
 // ─── Messages from app ────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
+
+  if (event.data?.type === 'CACHE_IMAGES') {
+    const { urls } = event.data;
+    if (!Array.isArray(urls)) return;
+    caches.open(IMAGE_CACHE).then(async (cache) => {
+      for (const url of urls) {
+        const exists = await cache.match(url);
+        if (!exists) {
+          try {
+            const r = await fetch(url);
+            if (r.ok) cache.put(url, r);
+          } catch { /* offline */ }
+          await new Promise(r => setTimeout(r, 100)); // gentle pacing
+        }
+      }
+    });
+  }
 
   if (event.data?.type === 'CACHE_AUDIO') {
     const { url } = event.data;

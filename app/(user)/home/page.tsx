@@ -203,7 +203,7 @@ function HomePage() {
             </div>
             <div>
               <p className="text-white font-bold text-sm leading-tight tracking-tight">Faarfannaa</p>
-              <p className="text-xs leading-tight" style={{ color: '#D4AF37' }}>Afaan Oromo</p>
+              <p className="text-xs leading-tight" style={{ color: '#D4AF37' }}>Waldaa Ergaamootaa</p>
             </div>
           </div>
 

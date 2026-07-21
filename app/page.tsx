@@ -100,7 +100,7 @@ export default function SplashScreen() {
 
       <div className="text-center z-10 px-6">
         <h1 className="text-2xl font-extrabold text-white tracking-wide leading-tight">Faarfannaa</h1>
-        <h2 className="text-xl font-bold mt-0.5" style={{ color: '#D4AF37' }}>Afaan Oromo</h2>
+        <h2 className="text-xl font-bold mt-0.5" style={{ color: '#D4AF37' }}>Waldaa Ergaamootaa</h2>
         <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.4)' }}>Church Music · Works Offline</p>
       </div>
 

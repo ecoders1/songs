@@ -11,16 +11,31 @@ export default function PlayerPage() {
   const { t } = useLanguage();
   const {
     currentSong, isPlaying, currentTime, duration, volume, queue,
-    pauseSong, resumeSong, nextSong, prevSong, seekTo, setVolume, downloadSong,
+    pauseSong, resumeSong, nextSong, prevSong, seekTo, setVolume, downloadSong, isOffline,
   } = usePlayer();
 
   const [showLyrics, setShowLyrics] = useState(false);
   const [seeking, setSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);
+  const [playError, setPlayError] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const lyricsRef = useRef<HTMLDivElement>(null);
 
-  const displayTime = seeking ? seekValue : currentTime;
+  // Clear play error when song actually starts
+  useEffect(() => {
+    if (isPlaying) setPlayError(false);
+  }, [isPlaying]);
+
+  // Detect when audio fails to load (e.g. not cached offline)
+  useEffect(() => {
+    if (!isPlaying && isOffline && currentSong && duration === 0) {
+      setPlayError(true);
+    } else {
+      setPlayError(false);
+    }
+  }, [isPlaying, isOffline, currentSong, duration]);
+
+  const displayTime     = seeking ? seekValue : currentTime;
   const displayProgress = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   const fmt = (sec: number) => {
@@ -181,6 +196,26 @@ export default function PlayerPage() {
             onTouchEnd={(e) => { seekTo(Number((e.target as HTMLInputElement).value)); setSeeking(false); }}
             className="w-full h-8 cursor-pointer" style={{ accentColor: '#D4AF37' }} />
         </div>
+
+        {/* Offline / not-cached warning */}
+        {playError && (
+          <div className="w-full max-w-xs mb-3 px-4 py-2.5 rounded-2xl flex items-center gap-2 fade-in"
+            style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.35)' }}>
+            <svg width="14" height="14" fill="none" stroke="#EAB308" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" strokeLinecap="round"/>
+            </svg>
+            <p className="text-xs font-medium flex-1" style={{ color: '#EAB308' }}>
+              {isOffline ? 'Not cached — go online to play' : 'Tap play to retry'}
+            </p>
+            {!isOffline && (
+              <button onClick={() => { setPlayError(false); resumeSong(); }}
+                className="text-xs font-bold px-2 py-1 rounded-lg"
+                style={{ background: 'rgba(234,179,8,0.2)', color: '#EAB308' }}>
+                Retry
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Controls */}
         <div className="flex items-center justify-center gap-5 mt-2">

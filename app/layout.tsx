@@ -12,24 +12,24 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ||
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
-  title: "Faarfannaa Afaan Oromo",
-  description: "Faarfannaa Afaan Oromo — Sagalee Amantii Apostolic. Works offline. Install free.",
+  title: "Faarfannaa Waldaa Ergaamootaa",
+  description: "Faarfannaa Waldaa Ergaamootaa — Sagalee Amantii Apostolic. Works offline. Install free.",
   manifest: "/manifest.json",
-  applicationName: "Faarfannaa Afaan Oromo",
-  keywords: ["Faarfannaa", "Afaan Oromo", "Apostolic", "Songs", "Church Music", "Ethiopian"],
+  applicationName: "Faarfannaa Waldaa Ergaamootaa",
+  keywords: ["Faarfannaa", "Waldaa Ergaamootaa", "Afaan Oromo", "Apostolic", "Songs", "Church Music", "Ethiopian"],
   authors: [{ name: "Apostolic Church" }],
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Faarfannaa Afaan Oromo",
+    title: "Faarfannaa Waldaa Ergaamootaa",
     startupImage: "/icons/icon-512.png",
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
-    title: "Faarfannaa Afaan Oromo",
-    description: "Faarfannaa Afaan Oromo — Sagalee Amantii Apostolic, free, works offline",
+    title: "Faarfannaa Waldaa Ergaamootaa",
+    description: "Faarfannaa Waldaa Ergaamootaa — Sagalee Amantii Apostolic, free, works offline",
     type: "website",
     locale: "om",
     images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "Faarfannaa Afaan Oromo" }],
@@ -72,12 +72,12 @@ export default function RootLayout({
 
         {/* Android / Chrome PWA */}
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="application-name" content="Faarfannaa Afaan Oromo" />
+        <meta name="application-name" content="Faarfannaa Waldaa Ergaamootaa" />
 
         {/* iOS / Safari PWA */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Faarfannaa Afaan Oromo" />
+        <meta name="apple-mobile-web-app-title" content="Faarfannaa Waldaa Ergaamootaa" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
         <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
