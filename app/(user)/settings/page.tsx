@@ -226,7 +226,7 @@ export default function SettingsPage() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t.about}</h2>
           <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e8f0' }}>
             {[
-              { label: t.appName,   value: 'Faarfannaa' },
+              { label: t.appName,   value: 'Faarfannaa Waldaa Ergaamootaa' },
               { label: t.version,   value: '1.0.0' },
               { label: t.developer, value: 'Apostolic Church' },
             ].map((item, i, arr) => (
@@ -243,7 +243,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="pb-8 text-center space-y-1">
-          <p className="text-xs text-gray-300">Apostolic Songs Afaan Oromoo</p>
+          <p className="text-xs text-gray-300">Faarfannaa Waldaa Ergaamootaa</p>
           <p className="text-xs text-gray-300">Made with ❤️ for the Church</p>
         </div>
       </div>
