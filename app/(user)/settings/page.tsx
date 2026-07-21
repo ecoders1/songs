@@ -184,6 +184,7 @@ export default function SettingsPage() {
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-gray-50"
+              style={{ borderBottom: '1px solid #f0f0f8' }}
             >
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#FF0000' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
@@ -193,6 +194,25 @@ export default function SettingsPage() {
               <div className="flex-1">
                 <p className="font-medium text-gray-800">YouTube</p>
                 <p className="text-xs text-gray-400">Oro Waliif</p>
+              </div>
+              <svg width="16" height="16" fill="none" stroke="#ccc" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+            <a
+              href="https://www.facebook.com/61579886334861"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-gray-50"
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#1877F2' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                  <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.791-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.27h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-800">Facebook</p>
+                <p className="text-xs text-gray-400">Dhalootaa Waldaa Ergaamootaa</p>
               </div>
               <svg width="16" height="16" fill="none" stroke="#ccc" strokeWidth="2" viewBox="0 0 24 24">
                 <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
