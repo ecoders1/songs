@@ -21,6 +21,18 @@ const THEMES: { key: Theme; label: string; icon: string; desc: string }[] = [
 
 const SOCIAL = [
   {
+    label: 'Portfolio',
+    sub: 'ermi-done.vercel.app',
+    href: 'https://ermi-done.vercel.app',
+    bg: '#1a1a2e',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
+      </svg>
+    ),
+  },
+  {
     label: 'Telegram',
     sub: '@milkibn',
     href: 'https://t.me/milkibn',
