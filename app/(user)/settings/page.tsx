@@ -228,6 +228,16 @@ export default function SettingsPage() {
 
         {/* ── About ──────────────────────────────────────────────────────── */}
         <Section label="About">
+          {/* Scripture — Acts 2:38 */}
+          <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#D4AF37' }}>
+              Hojii Ergaamootaa 2:38
+            </p>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-1)' }}>
+              "Phexrosis akkanaa jedhe: Deebisaatokkon tokkon keessan qalbii jijiraadha, dhifaama cubbuu keessanitiifis maqaa Yesus Kiristositti cuuphamaankennaa hafuuraa Qulqulluus ni argattuu."
+            </p>
+          </div>
+
           {[
             { label: 'App',       value: 'Faarfannaa Waldaa Ergaamootaa' },
             { label: 'Version',   value: '1.0.0' },
