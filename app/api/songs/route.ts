@@ -42,7 +42,11 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ songs: data || [] });
+
+  // Cache at CDN/browser for 5 minutes — prevents hammering Supabase on every navigation
+  return NextResponse.json({ songs: data || [] }, {
+    headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
+  });
 }
 
 export async function POST(req: NextRequest) {
