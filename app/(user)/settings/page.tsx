@@ -234,7 +234,7 @@ export default function SettingsPage() {
               Hojii Ergaamootaa 2:38
             </p>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-1)' }}>
-              "Phexrosis akkanaa jedhe: Deebisaatokkon tokkon keessan qalbii jijiraadha, dhifaama cubbuu keessanitiifis maqaa Yesus Kiristositti cuuphamaankennaa hafuuraa Qulqulluus ni argattuu."
+              "Phexrosis akkanaa jedhe: Deebiseetokkon tokkon keessan qalbii jijiraadha, dhifaama cubbuu keessanitiifis maqaa Yesus Kiristositti cuuphamaa kennaa hafuuraa Qulqulluus ni argattuu."
             </p>
           </div>
 
