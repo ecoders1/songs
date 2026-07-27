@@ -90,7 +90,7 @@ export default function PlayerPage() {
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 pt-12 pb-2">
-        <button onClick={() => router.back()}
+        <button onClick={() => router.push('/home')}
           className="w-10 h-10 rounded-full flex items-center justify-center"
           style={{ background: 'rgba(255,255,255,0.08)' }} aria-label="Back">
           <svg width="20" height="20" fill="none" stroke="white" strokeWidth="2.2" viewBox="0 0 24 24">

@@ -174,7 +174,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Songs & Artists API — network-first, fall back to cache
+  // 3. Songs & Artists API — network-first, fall back to SW cache, then empty
   if (isSongsOrArtistsApi(url)) {
     event.respondWith(
       caches.open(API_CACHE).then(async (cache) => {
@@ -185,9 +185,10 @@ self.addEventListener('fetch', (event) => {
         } catch {
           const cached = await cache.match(event.request);
           if (cached) return cached;
+          // Return null body so the client knows to fall back to IDB
           const key = url.pathname.startsWith('/api/songs') ? 'songs' : 'artists';
           return new Response(
-            JSON.stringify({ [key]: [], _offline: true }),
+            JSON.stringify({ [key]: [], _offline: true, _no_cache: true }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
           );
         }

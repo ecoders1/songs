@@ -21,25 +21,26 @@ export default function ArtistPage() {
     setLoading(true);
 
     (async () => {
-      // ── Try network first ────────────────────────────────────────────────
+      // ── Try network / SW cache first ─────────────────────────────────────
       try {
         const [ar, sr] = await Promise.all([
           fetch(`/api/artists/${id}`),
           fetch(`/api/songs?artist_id=${id}`),
         ]);
-        const { artist: a } = await ar.json();
-        const { songs: s  } = await sr.json();
+        const artistData = await ar.json();
+        const songsData  = await sr.json();
 
-        if (a) {
-          setArtist(a);
-          setSongs(s || []);
+        // If SW returned real data (not a no-cache placeholder), use it
+        if (artistData.artist && !songsData._no_cache) {
+          setArtist(artistData.artist);
+          setSongs(songsData.songs || []);
           setOffline(false);
           setLoading(false);
           return;
         }
       } catch { /* fall through to IDB */ }
 
-      // ── Offline fallback — read from IndexedDB ───────────────────────────
+      // ── IDB fallback (offline or SW had no cached data) ──────────────────
       setOffline(true);
       try {
         const [allArtists, allSongs] = await Promise.all([
@@ -47,8 +48,8 @@ export default function ArtistPage() {
           loadFromIDB<Song>('songs'),
         ]);
         const found = allArtists.find((a) => a.id === id) ?? null;
-        const artistSongs = allSongs.filter((s) => s.artist_id === id)
-          // attach artist reference so player/MiniPlayer can show artist name
+        const artistSongs = allSongs
+          .filter((s) => s.artist_id === id)
           .map((s) => ({ ...s, artist: found ?? undefined }));
 
         setArtist(found);
@@ -115,7 +116,7 @@ export default function ArtistPage() {
           </svg>
           <p className="text-sm">Artist not found</p>
           {offline && <p className="text-xs mt-1 opacity-60">You're offline — only cached artists are available</p>}
-          <button onClick={() => router.back()} className="mt-4 text-sm underline" style={{ color: 'var(--gold)' }}>
+          <button onClick={() => router.push('/home')} className="mt-4 text-sm underline" style={{ color: 'var(--gold)' }}>
             Go back
           </button>
         </div>
@@ -147,7 +148,7 @@ export default function ArtistPage() {
 
         {/* Back */}
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/home')}
           className="absolute top-12 left-4 w-9 h-9 rounded-full flex items-center justify-center z-10"
           style={{ background: 'rgba(255,255,255,0.15)' }}
         >

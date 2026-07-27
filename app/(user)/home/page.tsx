@@ -80,7 +80,10 @@ function HomePage() {
       const res = await fetch(`/api/artists?category=${cat}`, { signal: abortRef.current.signal });
       const data = await res.json();
       const list: Artist[] = data.artists || [];
-      const finalList = list.length > 0 ? list : (isOffline ? offlineArtists.filter((a) => a.category === cat) : []);
+      // Fall back to IDB if API returned no data (offline/no-cache)
+      const finalList = (list.length > 0 && !data._no_cache)
+        ? list
+        : offlineArtists.filter((a) => a.category === cat);
       if (list.length > 0) { setArtistCache(cat, finalList); cacheAllSongs([], finalList); }
       setArtists(finalList);
     } catch (err: unknown) {
