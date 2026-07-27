@@ -238,7 +238,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     saveToIDB('songs', songs).catch(() => {});
     setOfflineSongs(songs);
 
-    // Cache artist images (small, few requests)
+    // Cache artist images (small files, ~10-15 images total — safe)
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       const imageUrls = [...new Set(
         songs
@@ -246,11 +246,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           .filter(Boolean) as string[]
       )];
       if (imageUrls.length) sendToSW({ type: 'CACHE_IMAGES', urls: imageUrls });
-
-      // Cache all audio in background — one file every 3s so we don't spam Supabase
-      // This is what makes "play offline without download" work
-      sendToSW({ type: 'CACHE_ALL_SONGS_GENTLE', songs: songs.map((s) => ({ audio_url: s.audio_url })) });
     }
+
+    // NOTE: Audio is NOT bulk-cached here.
+    // It is cached on-demand when a song is played (CACHE_AUDIO in playSong).
+    // Bulk audio caching happens only once ever from the prefetch effect below.
 
     // Mark which songs are already audio-cached (for UI indicators)
     if ('caches' in window) {
@@ -264,16 +264,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [sendToSW]);
 
-  // ── Background prefetch — cache ALL songs once per day ──────────────────
-  // Uses localStorage so it survives page reloads and PWA restarts.
-  // Only re-fetches if more than 24 hours have passed since last prefetch.
+  // ── Background prefetch — metadata once/day, audio once ever ────────────
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const PREFETCH_KEY = 'songs_prefetched_at';
-    const ONE_DAY = 24 * 60 * 60 * 1000;
-    const last = parseInt(localStorage.getItem(PREFETCH_KEY) || '0', 10);
-    if (Date.now() - last < ONE_DAY) return; // already done recently
+    const META_KEY  = 'songs_prefetched_at';
+    const AUDIO_KEY = 'audio_cached_ever';
+    const ONE_DAY   = 24 * 60 * 60 * 1000;
+    const lastMeta  = parseInt(localStorage.getItem(META_KEY) || '0', 10);
+    const audioDone = localStorage.getItem(AUDIO_KEY) === '1';
+
+    // Nothing to do if metadata is fresh AND audio already cached
+    if (Date.now() - lastMeta < ONE_DAY && audioDone) return;
 
     const prefetch = async () => {
       try {
@@ -288,17 +290,26 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
         const songs: Song[]     = songList   || [];
         const artists: Artist[] = artistList || [];
-
         if (!songs.length) return;
 
-        // Stamp before async cache work so a crash doesn't re-trigger immediately
-        localStorage.setItem(PREFETCH_KEY, String(Date.now()));
+        // Stamp immediately to prevent re-trigger
+        localStorage.setItem(META_KEY, String(Date.now()));
+
+        // Save to IDB + cache images (safe — small number of requests)
         cacheAllSongs(songs, artists);
-      } catch { /* offline — IDB already has data from last session */ }
+
+        // Bulk audio caching — only once ever, gently in SW background
+        if (!audioDone && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          localStorage.setItem(AUDIO_KEY, '1');
+          navigator.serviceWorker.controller.postMessage({
+            type: 'CACHE_ALL_SONGS_GENTLE',
+            songs: songs.map((s) => ({ audio_url: s.audio_url })),
+          });
+        }
+      } catch { /* offline — IDB already has data */ }
     };
 
-    // 3 second delay — well after initial render
-    const t = setTimeout(prefetch, 3000);
+    const t = setTimeout(prefetch, 5000); // 5s delay — well after render
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
