@@ -234,24 +234,25 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
     if (!songs.length) return;
 
-    // Persist song + artist metadata to IDB — enables full offline browsing
+    // Persist metadata to IDB — enables offline browsing
     saveToIDB('songs', songs).catch(() => {});
     setOfflineSongs(songs);
 
-    // Cache artist images only (small files, not audio blobs)
-    // Audio is cached on-demand when a song is played — avoids 128 requests at startup
+    // Cache artist images (small, few requests)
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       const imageUrls = [...new Set(
         songs
           .map((s) => s.image_url || s.artist?.image_url || null)
           .filter(Boolean) as string[]
       )];
-      if (imageUrls.length) {
-        sendToSW({ type: 'CACHE_IMAGES', urls: imageUrls });
-      }
+      if (imageUrls.length) sendToSW({ type: 'CACHE_IMAGES', urls: imageUrls });
+
+      // Cache all audio in background — one file every 3s so we don't spam Supabase
+      // This is what makes "play offline without download" work
+      sendToSW({ type: 'CACHE_ALL_SONGS_GENTLE', songs: songs.map((s) => ({ audio_url: s.audio_url })) });
     }
 
-    // Mark which songs are already cached for UI indicators
+    // Mark which songs are already audio-cached (for UI indicators)
     if ('caches' in window) {
       caches.open('faarfannaa-audio').then(async (cache) => {
         const cached = new Set<string>();

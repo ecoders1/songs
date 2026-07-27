@@ -269,6 +269,27 @@ self.addEventListener('message', (event) => {
     });
   }
 
+  if (event.data?.type === 'CACHE_ALL_SONGS_GENTLE') {
+    const { songs } = event.data;
+    if (!Array.isArray(songs)) return;
+    // Cache one audio file every 3 seconds — gentle background caching
+    // so the user never needs to manually download songs for offline playback
+    (async () => {
+      const cache = await caches.open(AUDIO_CACHE);
+      for (const song of songs) {
+        if (!song.audio_url) continue;
+        const exists = await cache.match(song.audio_url);
+        if (exists) continue; // already cached
+        try {
+          const r = await fetch(new Request(song.audio_url));
+          if (r.ok) await cache.put(song.audio_url, r);
+        } catch { /* offline or failed — skip */ }
+        // 3 second gap between files — avoids rate limits
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    })();
+  }
+
   if (event.data?.type === 'CACHE_AUDIO') {
     const { url } = event.data;
     if (!url) return;

@@ -22,8 +22,8 @@ const THEMES: { key: Theme; label: string; icon: string; desc: string }[] = [
 const SOCIAL = [
   {
     label: 'Portfolio',
-    sub: 'ermi-done.vercel.app',
-    href: 'https://ermi-done.vercel.app',
+    sub: 'isayasfikadu.vercel.app',
+    href: 'https://isayasfikadu.vercel.app',
     bg: '#1a1a2e',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
