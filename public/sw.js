@@ -26,7 +26,6 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(STATIC_ASSETS).catch(() => {}))
   );
-  // Take control immediately — don't wait for old SW to die
   self.skipWaiting();
 });
 
