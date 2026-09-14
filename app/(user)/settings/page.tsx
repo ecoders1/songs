@@ -5,7 +5,7 @@ import { useLanguage, type AppLanguage } from '@/context/LanguageContext';
 import { useTheme, type Theme } from '@/context/ThemeContext';
 import { usePlayer } from '@/context/PlayerContext';
 import Image from 'next/image';
-import type { Song, Artist } from '@/lib/types';
+import type { Song } from '@/lib/types';
 
 const LANGUAGES: { key: AppLanguage; label: string; native: string; flag: string }[] = [
   { key: 'oromo',   label: 'Afaan Oromoo', native: 'Afaan Oromoo', flag: '🇪🇹' },
@@ -95,15 +95,26 @@ export default function SettingsPage() {
   const [downloadDone,     setDownloadDone]     = useState(false);
   const [storageUsed,      setStorageUsed]      = useState<string | null>(null);
   const [clearConfirm,     setClearConfirm]     = useState(false);
+  const [showCategories,   setShowCategories]   = useState(false);
+  const [allSongs,         setAllSongs]         = useState<Song[]>([]);
+  const [catSaving,        setCatSaving]        = useState<Record<string, boolean>>({});
+  const [catDone,          setCatDone]          = useState<Record<string, boolean>>({});
+  const [catProgress,      setCatProgress]      = useState<Record<string, number>>({});
   const progressRef = useRef<{ done: number; total: number }>({ done: 0, total: 0 });
+
+  const CATEGORIES = [
+    { key: 'new',    label: 'New Songs',  emoji: '🎵' },
+    { key: 'single', label: 'Single',     emoji: '🎤' },
+    { key: 'group',  label: 'Group',      emoji: '👥' },
+    { key: 'old',    label: 'Old Songs',  emoji: '📀' },
+  ] as const;
 
   // Load total song count + check storage
   useEffect(() => {
-    // Get total songs from API (or cached count as fallback)
     fetch('/api/songs')
       .then(r => r.json())
       .then(({ songs }: { songs: Song[] }) => {
-        if (songs?.length) setTotalSongs(songs.length);
+        if (songs?.length) { setTotalSongs(songs.length); setAllSongs(songs); }
       })
       .catch(() => {});
 
@@ -131,14 +142,22 @@ export default function SettingsPage() {
     const handler = (e: MessageEvent) => {
       if (e.data?.type === 'CACHE_PROGRESS') {
         progressRef.current = { done: e.data.done, total: e.data.total };
-        setCachedCount(e.data.done);
+        setCachedCount(prev => Math.max(prev, e.data.done));
+        // Update per-category progress if tag present
+        if (e.data.category) {
+          setCatProgress(prev => ({ ...prev, [e.data.category]: e.data.done }));
+        }
       }
       if (e.data?.type === 'CACHE_COMPLETE') {
-        setIsDownloading(false);
-        setDownloadDone(true);
-        setCachedCount(e.data.total);
-        setTotalSongs(e.data.total);
-        // Refresh storage estimate
+        if (e.data.category) {
+          setCatSaving(prev => ({ ...prev, [e.data.category]: false }));
+          setCatDone(prev => ({ ...prev, [e.data.category]: true }));
+        } else {
+          setIsDownloading(false);
+          setDownloadDone(true);
+        }
+        setCachedCount(e.data.total ?? 0);
+        setTotalSongs(prev => Math.max(prev, e.data.total ?? 0));
         if ('storage' in navigator && 'estimate' in navigator.storage) {
           navigator.storage.estimate().then(({ usage, quota }) => {
             const usedMB  = usage ? (usage  / (1024 * 1024)).toFixed(0) : '0';
@@ -152,36 +171,39 @@ export default function SettingsPage() {
     return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, []);
 
+  // Save one category to offline
+  const handleSaveCategory = useCallback(async (catKey: string) => {
+    if (catSaving[catKey] || catDone[catKey]) return;
+    const songs = allSongs.filter(s => s.category === catKey);
+    if (!songs.length) return;
+    setCatSaving(prev => ({ ...prev, [catKey]: true }));
+    setCatProgress(prev => ({ ...prev, [catKey]: 0 }));
+    const sw = navigator.serviceWorker?.controller;
+    if (sw) {
+      sw.postMessage({
+        type: 'CACHE_ALL_SONGS_GENTLE',
+        category: catKey,
+        songs: songs.map(s => ({ id: s.id, audio_url: s.audio_url })),
+      });
+    }
+  }, [allSongs, catSaving, catDone]);
+
+  // Save all categories at once
   const handleDownloadAll = useCallback(async () => {
     if (isDownloading) return;
-    setIsDownloading(true);
-    setDownloadDone(false);
-    try {
-      const [songsRes, artistsRes] = await Promise.all([
-        fetch('/api/songs'),
-        fetch('/api/artists'),
-      ]);
-      const { songs }: { songs: Song[] }     = await songsRes.json();
-      const { artists }: { artists: Artist[] } = artistsRes.ok ? await artistsRes.json() : { artists: [] };
-      if (!songs?.length) { setIsDownloading(false); return; }
-      setTotalSongs(songs.length);
-      // Send to SW for gentle background caching with progress reporting
-      const sw = navigator.serviceWorker.controller;
-      if (sw) {
-        sw.postMessage({
-          type: 'CACHE_ALL_SONGS_GENTLE',
-          songs: songs.map(s => ({ id: s.id, audio_url: s.audio_url })),
-        });
-      }
-      // Also cache artist images immediately
-      const imageUrls = [...new Set(
-        [...songs.map(s => s.image_url), ...artists.map(a => a.image_url)].filter(Boolean) as string[]
-      )];
-      if (imageUrls.length && sw) sw.postMessage({ type: 'CACHE_IMAGES', urls: imageUrls });
-    } catch {
+    if (!allSongs.length) {
+      setIsDownloading(true);
+      try {
+        const songsRes = await fetch('/api/songs');
+        const { songs }: { songs: Song[] } = await songsRes.json();
+        if (!songs?.length) { setIsDownloading(false); return; }
+        setTotalSongs(songs.length);
+        setAllSongs(songs);
+      } catch { setIsDownloading(false); return; }
       setIsDownloading(false);
     }
-  }, [isDownloading]);
+    setShowCategories(true);
+  }, [isDownloading, allSongs]);
 
   const handleClearCache = useCallback(async () => {
     if (!clearConfirm) { setClearConfirm(true); setTimeout(() => setClearConfirm(false), 4000); return; }
@@ -193,6 +215,10 @@ export default function SettingsPage() {
       localStorage.removeItem('songs_prefetched_at');
       setCachedCount(0);
       setDownloadDone(false);
+      setCatDone({});
+      setCatSaving({});
+      setCatProgress({});
+      setShowCategories(false);
       setStorageUsed(null);
     } catch { /* silent */ }
   }, [clearConfirm]);
@@ -319,58 +345,144 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Save for Offline button */}
+          {/* Save for Offline button + category breakdown */}
           <div className="px-4 pb-3" style={{ borderTop: '1px solid var(--border)' }}>
-            {/* Clarification note */}
             <p className="text-xs mt-3 mb-2 text-center" style={{ color: 'var(--text-3)' }}>
               Songs are saved inside this app only — nothing is added to your device storage or Downloads folder.
             </p>
-            <button
-              onClick={handleDownloadAll}
-              disabled={isDownloading || downloadDone}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
-              style={{
-                background: downloadDone
-                  ? 'rgba(34,197,94,0.12)'
-                  : isDownloading
+
+            {/* Main button — tap to reveal categories */}
+            {!showCategories ? (
+              <button
+                onClick={handleDownloadAll}
+                disabled={isDownloading}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
+                style={{
+                  background: isDownloading
                     ? 'rgba(212,175,55,0.15)'
                     : 'linear-gradient(135deg, #D4AF37 0%, #F0D060 100%)',
-                color: downloadDone ? '#22C55E' : isDownloading ? '#D4AF37' : '#1a1a2e',
-                border: downloadDone ? '1px solid rgba(34,197,94,0.3)' : 'none',
-                opacity: isDownloading ? 0.9 : 1,
-                cursor: isDownloading || downloadDone ? 'default' : 'pointer',
-              }}
-            >
-              {downloadDone ? (
-                <>
-                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  All Songs Ready Offline
-                </>
-              ) : isDownloading ? (
-                <>
-                  <span style={{
-                    width: 15, height: 15, borderRadius: '50%',
-                    border: '2.5px solid rgba(212,175,55,0.3)',
-                    borderTopColor: '#D4AF37',
-                    display: 'inline-block',
-                    animation: 'spin 0.7s linear infinite',
-                  }} />
-                  {cachedCount > 0 && totalSongs > 0
-                    ? `Saving ${cachedCount} of ${totalSongs}…`
-                    : 'Saving to app…'}
-                </>
-              ) : (
-                <>
-                  {/* Cloud/wifi icon — not a download arrow */}
-                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path d="M18 10a6 6 0 00-12 0 4 4 0 000 8h12a4 4 0 000-8z" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Save All Songs for Offline
-                </>
-              )}
-            </button>
+                  color: isDownloading ? '#D4AF37' : '#1a1a2e',
+                  cursor: isDownloading ? 'default' : 'pointer',
+                }}
+              >
+                {isDownloading ? (
+                  <>
+                    <span style={{
+                      width: 15, height: 15, borderRadius: '50%',
+                      border: '2.5px solid rgba(212,175,55,0.3)',
+                      borderTopColor: '#D4AF37',
+                      display: 'inline-block',
+                      animation: 'spin 0.7s linear infinite',
+                    }} />
+                    Loading songs…
+                  </>
+                ) : (
+                  <>
+                    <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path d="M18 10a6 6 0 00-12 0 4 4 0 000 8h12a4 4 0 000-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Save Songs for Offline
+                  </>
+                )}
+              </button>
+            ) : (
+              /* Category breakdown */
+              <div className="mt-1 space-y-2">
+                {CATEGORIES.map((cat) => {
+                  const songs = allSongs.filter(s => s.category === cat.key);
+                  const done  = catDone[cat.key] || false;
+                  const saving = catSaving[cat.key] || false;
+                  const prog  = catProgress[cat.key] || 0;
+                  const pct   = songs.length > 0 ? Math.min((prog / songs.length) * 100, 100) : 0;
+
+                  return (
+                    <div
+                      key={cat.key}
+                      className="rounded-xl overflow-hidden"
+                      style={{
+                        background: done
+                          ? 'rgba(34,197,94,0.08)'
+                          : 'var(--surface-2)',
+                        border: done
+                          ? '1px solid rgba(34,197,94,0.25)'
+                          : '1px solid var(--border)',
+                      }}
+                    >
+                      <div className="flex items-center gap-3 px-3 py-2.5">
+                        {/* Emoji + label */}
+                        <span className="text-lg leading-none flex-shrink-0">{cat.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold leading-tight" style={{ color: 'var(--text-1)' }}>
+                            {cat.label}
+                          </p>
+                          <p className="text-xs" style={{ color: 'var(--text-3)' }}>
+                            {songs.length} song{songs.length !== 1 ? 's' : ''}
+                            {saving && prog > 0 ? ` · ${prog} saved` : ''}
+                          </p>
+                        </div>
+
+                        {/* Action */}
+                        {done ? (
+                          <span className="flex items-center gap-1 text-xs font-bold flex-shrink-0" style={{ color: '#22C55E' }}>
+                            <svg width="13" height="13" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            Ready
+                          </span>
+                        ) : saving ? (
+                          <span style={{
+                            width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                            border: '2.5px solid rgba(212,175,55,0.3)',
+                            borderTopColor: '#D4AF37',
+                            display: 'inline-block',
+                            animation: 'spin 0.7s linear infinite',
+                          }} />
+                        ) : (
+                          <button
+                            onClick={() => handleSaveCategory(cat.key)}
+                            disabled={songs.length === 0}
+                            className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95"
+                            style={{
+                              background: 'linear-gradient(135deg, #D4AF37, #F0D060)',
+                              color: '#1a1a2e',
+                              opacity: songs.length === 0 ? 0.4 : 1,
+                              cursor: songs.length === 0 ? 'default' : 'pointer',
+                            }}
+                          >
+                            <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <path d="M18 10a6 6 0 00-12 0 4 4 0 000 8h12a4 4 0 000-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            Save
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Per-category progress bar */}
+                      {saving && (
+                        <div className="h-1" style={{ background: 'var(--border)' }}>
+                          <div
+                            className="h-full transition-all duration-500"
+                            style={{
+                              width: `${pct}%`,
+                              background: 'linear-gradient(90deg, #D4AF37, #F0D060)',
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Collapse button */}
+                <button
+                  onClick={() => setShowCategories(false)}
+                  className="w-full py-2 text-xs font-semibold rounded-xl transition-all active:opacity-60"
+                  style={{ color: 'var(--text-3)', background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+                >
+                  ↑ Hide
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Clear cache */}
