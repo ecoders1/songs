@@ -335,3 +335,61 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// ─── Push notifications ───────────────────────────────────────────────────────
+// Handles server-sent push payloads (VAPID / web-push).
+// Expected payload shape (JSON): { title, body, icon, badge, url, tag }
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+
+  const title  = data.title  || 'Faarfannaa Waldaa Ergaamootaa';
+  const body   = data.body   || 'Ergaa haaraa qabda.';
+  const icon   = data.icon   || '/icons/icon-192.png';
+  const badge  = data.badge  || '/icons/icon-192.png';
+  const url    = data.url    || '/home';
+  const tag    = data.tag    || 'faarfannaa-default';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      badge,
+      tag,
+      renotify: true,
+      data: { url },
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+// ─── Notification click ───────────────────────────────────────────────────────
+// Opens / focuses the app when the user taps a notification.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || '/home';
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // If the app is already open, focus it and navigate
+        for (const client of clientList) {
+          if ('focus' in client) {
+            client.focus();
+            client.postMessage({ type: 'NOTIFICATION_CLICK', url: targetUrl });
+            return;
+          }
+        }
+        // App is not open — open a new window
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
+  );
+});

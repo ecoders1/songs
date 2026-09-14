@@ -8,6 +8,7 @@ import { usePlayer } from '@/context/PlayerContext';
 import { useTheme, type Theme } from '@/context/ThemeContext';
 import { getArtistCache, setArtistCache } from '@/lib/dataCache';
 import InstallPrompt from '@/components/InstallPrompt';
+import NotificationPrompt from '@/components/NotificationPrompt';
 import type { Artist, Category } from '@/lib/types';
 
 // Wrap in Suspense so useSearchParams doesn't break static prerender
@@ -171,6 +172,7 @@ function HomePage() {
       onTouchEnd={onTouchEnd}
     >
       <InstallPrompt />
+      <NotificationPrompt />
 
       {/* ── Pull-to-refresh indicator ──────────────────────────────────────── */}
       <div

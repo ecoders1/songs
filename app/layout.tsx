@@ -4,6 +4,7 @@ import { PlayerProvider } from "@/context/PlayerContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { PWAProvider } from "@/context/PWAContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 // Works on both songscom.vercel.app and faarsaa.vercel.app
 // VERCEL_URL is set automatically by Vercel for the current deployment domain
@@ -100,9 +101,11 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-white">
         <LanguageProvider>
           <PWAProvider>
-            <ThemeProvider>
-              <PlayerProvider>{children}</PlayerProvider>
-            </ThemeProvider>
+            <NotificationProvider>
+              <ThemeProvider>
+                <PlayerProvider>{children}</PlayerProvider>
+              </ThemeProvider>
+            </NotificationProvider>
           </PWAProvider>
         </LanguageProvider>
       </body>
