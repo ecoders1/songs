@@ -38,7 +38,14 @@ export default function SplashScreen() {
       const scheduleReload = () => {
         if (reloadScheduled) return;
         reloadScheduled = true;
-        setTimeout(() => window.location.reload(), 1000);
+        setTimeout(() => {
+          // Pause any playing audio before reloading so it doesn't carry over
+          try {
+            const audios = document.querySelectorAll('audio');
+            audios.forEach(a => { a.pause(); a.src = ''; });
+          } catch { /* ignore */ }
+          window.location.reload();
+        }, 1000);
       };
 
       navigator.serviceWorker.addEventListener('message', (event) => {

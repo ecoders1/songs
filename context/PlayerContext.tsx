@@ -105,11 +105,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       if (savedSong) {
         const song = JSON.parse(savedSong) as Song;
         setCurrentSong(song);
-        // Pre-load the audio src so it's ready offline without a user gesture
-        if (audioRef.current) {
-          audioRef.current.src    = song.audio_url;
-          audioRef.current.preload = 'auto';
-        }
+        // Do NOT set audio.src here — restoring src on page load causes
+        // the browser to start buffering/playing after a SW reload.
+        // The user must tap play explicitly to resume.
       }
       if (savedVolume) setVolumeState(parseFloat(savedVolume));
     } catch { /* ignore */ }
