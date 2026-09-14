@@ -109,11 +109,10 @@ export default function SettingsPage() {
 
     // Storage estimate
     if ('storage' in navigator && 'estimate' in navigator.storage) {
-      navigator.storage.estimate().then(({ usage }) => {
-        if (usage) {
-          const mb = (usage / (1024 * 1024)).toFixed(1);
-          setStorageUsed(`${mb} MB`);
-        }
+      navigator.storage.estimate().then(({ usage, quota }) => {
+        const usedMB  = usage  ? (usage  / (1024 * 1024)).toFixed(0) : '0';
+        const totalMB = quota  ? (quota  / (1024 * 1024)).toFixed(0) : null;
+        setStorageUsed(totalMB ? `${usedMB} MB / ${totalMB} MB` : `${usedMB} MB`);
       });
     }
   }, []);
@@ -141,8 +140,10 @@ export default function SettingsPage() {
         setTotalSongs(e.data.total);
         // Refresh storage estimate
         if ('storage' in navigator && 'estimate' in navigator.storage) {
-          navigator.storage.estimate().then(({ usage }) => {
-            if (usage) setStorageUsed(`${(usage / (1024 * 1024)).toFixed(1)} MB`);
+          navigator.storage.estimate().then(({ usage, quota }) => {
+            const usedMB  = usage ? (usage  / (1024 * 1024)).toFixed(0) : '0';
+            const totalMB = quota ? (quota  / (1024 * 1024)).toFixed(0) : null;
+            setStorageUsed(totalMB ? `${usedMB} MB / ${totalMB} MB` : `${usedMB} MB`);
           });
         }
       }
@@ -313,7 +314,7 @@ export default function SettingsPage() {
 
             {storageUsed && (
               <p className="text-xs mt-1.5" style={{ color: 'var(--text-3)' }}>
-                Storage used: {storageUsed}
+                💾 {storageUsed} used
               </p>
             )}
           </div>
