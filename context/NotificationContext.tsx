@@ -99,6 +99,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // Prefer SW-based notification (works when tab is hidden / screen is locked)
     try {
       const reg = await navigator.serviceWorker.ready;
+      // Cast to `any` — renotify, vibrate, and badge are valid Web API fields
+      // but are missing or incomplete in some TypeScript lib definitions.
       await reg.showNotification(title, {
         body,
         icon,
@@ -106,9 +108,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         tag,
         renotify,
         data: { url },
-        // @ts-expect-error — vibrate is valid but not in all TS lib defs
         vibrate: [200, 100, 200],
-      });
+      } as NotificationOptions & Record<string, unknown>);
       return;
     } catch {
       // SW not ready — fall back to Notification constructor
