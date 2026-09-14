@@ -286,11 +286,11 @@ export default function SettingsPage() {
                       display: 'inline-block',
                       animation: 'spin 0.7s linear infinite',
                     }} />
-                    Downloading…
+                    Saving to app…
                   </span>
                 ) : (
                   <span className="text-xs font-semibold" style={{ color: 'var(--text-3)' }}>
-                    📥 Not fully downloaded
+                    🎵 Not saved for offline yet
                   </span>
                 )}
               </div>
@@ -319,12 +319,16 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Download All button */}
+          {/* Save for Offline button */}
           <div className="px-4 pb-3" style={{ borderTop: '1px solid var(--border)' }}>
+            {/* Clarification note */}
+            <p className="text-xs mt-3 mb-2 text-center" style={{ color: 'var(--text-3)' }}>
+              Songs are saved inside this app only — nothing is added to your device storage or Downloads folder.
+            </p>
             <button
               onClick={handleDownloadAll}
               disabled={isDownloading || downloadDone}
-              className="w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
               style={{
                 background: downloadDone
                   ? 'rgba(34,197,94,0.12)'
@@ -342,7 +346,7 @@ export default function SettingsPage() {
                   <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  All Songs Downloaded
+                  All Songs Ready Offline
                 </>
               ) : isDownloading ? (
                 <>
@@ -354,15 +358,16 @@ export default function SettingsPage() {
                     animation: 'spin 0.7s linear infinite',
                   }} />
                   {cachedCount > 0 && totalSongs > 0
-                    ? `${cachedCount} of ${totalSongs} downloaded…`
-                    : 'Downloading…'}
+                    ? `Saving ${cachedCount} of ${totalSongs}…`
+                    : 'Saving to app…'}
                 </>
               ) : (
                 <>
+                  {/* Cloud/wifi icon — not a download arrow */}
                   <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M18 10a6 6 0 00-12 0 4 4 0 000 8h12a4 4 0 000-8z" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Download All for Offline
+                  Save All Songs for Offline
                 </>
               )}
             </button>
