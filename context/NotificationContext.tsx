@@ -17,7 +17,7 @@ import React, {
   createContext, useCallback, useContext, useEffect, useState,
 } from 'react';
 
-export interface NotificationOptions {
+export interface LocalNotificationOptions {
   title: string;
   body?: string;
   icon?: string;
@@ -41,14 +41,14 @@ interface NotificationContextType {
    * Uses the registered Service Worker so it works even when the tab is hidden.
    * Falls back to Notification() constructor when SW is unavailable.
    */
-  showLocalNotification: (opts: NotificationOptions) => Promise<void>;
+  showLocalNotification: (opts: LocalNotificationOptions) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType>({
   isSupported:            false,
   notificationPermission: 'default',
   requestPermission:      async () => 'default',
-  showLocalNotification:  async () => {},
+  showLocalNotification: async () => {},
 });
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
@@ -91,7 +91,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [isSupported]);
 
   // ── Show a local (non-server-push) notification ────────────────────────────
-  const showLocalNotification = useCallback(async (opts: NotificationOptions): Promise<void> => {
+  const showLocalNotification = useCallback(async (opts: LocalNotificationOptions): Promise<void> => {
     if (!isSupported || Notification.permission !== 'granted') return;
 
     const { title, body, icon = '/icons/icon-192.png', badge = '/icons/icon-192.png', url = '/home', tag, renotify } = opts;
@@ -99,17 +99,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // Prefer SW-based notification (works when tab is hidden / screen is locked)
     try {
       const reg = await navigator.serviceWorker.ready;
-      // Cast to `any` — renotify, vibrate, and badge are valid Web API fields
-      // but are missing or incomplete in some TypeScript lib definitions.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await reg.showNotification(title, {
-        body,
-        icon,
-        badge,
-        tag,
-        renotify,
+        body, icon, badge, tag, renotify,
         data: { url },
         vibrate: [200, 100, 200],
-      } as NotificationOptions & Record<string, unknown>);
+      } as any);
       return;
     } catch {
       // SW not ready — fall back to Notification constructor
