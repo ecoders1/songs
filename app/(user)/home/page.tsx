@@ -34,7 +34,6 @@ function HomePage() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const [showLockedMsg, setShowLockedMsg] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Artist[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -55,10 +54,6 @@ function HomePage() {
 
   const handleNewSongsPress = () => setSection('new');
   const handleAllSongsPress = () => setSection('all');
-  const handleLockedClick = () => {
-    setShowLockedMsg(true);
-    setTimeout(() => setShowLockedMsg(false), 3000);
-  };
 
   // Active fetch category
   const fetchCategory: Category = section === 'new' ? 'new' : freeCategory;
@@ -199,7 +194,7 @@ function HomePage() {
           maskImage: 'linear-gradient(to bottom, black 88%, transparent 100%)',
         }}
       >
-        {/* Row 1 — Logo · upload lock · status */}
+        {/* Row 1 — Logo */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
@@ -248,37 +243,8 @@ function HomePage() {
                 </div>
               )}
             </div>
-
-            {/* Upload lock */}
-            <button onClick={handleLockedClick}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-opacity active:opacity-60"
-              style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}
-              aria-label="Upload locked — admin only">
-              <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                <rect x="3" y="11" width="18" height="11" rx="2"/>
-                <path d="M7 11V7a5 5 0 0110 0v4" strokeLinecap="round"/>
-              </svg>
-              Upload
-            </button>
-
-            {/* Online / Offline */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-500"
-              style={{ background: isOffline ? 'rgba(234,179,8,0.12)' : 'rgba(34,197,94,0.12)', border: `1px solid ${isOffline ? 'rgba(234,179,8,0.35)' : 'rgba(34,197,94,0.35)'}` }}>
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ background: isOffline ? '#EAB308' : '#22C55E', ...(isOffline ? {} : { animation: 'breathe 2.2s ease-in-out infinite' }) }} />
-              <span className="text-xs font-semibold leading-none" style={{ color: isOffline ? '#EAB308' : '#22C55E' }}>
-                {isOffline ? 'Offline' : 'Online'}
-              </span>
-            </div>
           </div>
         </div>
-
-        {showLockedMsg && (
-          <div className="mb-2 px-3 py-2 rounded-xl text-xs font-medium text-center fade-in"
-            style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.25)' }}>
-            🔒 Only admins can upload songs and artists
-          </div>
-        )}
 
         {/* Search bar */}
         <div className="relative">
