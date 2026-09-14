@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useLanguage, UI_TEXT, type AppLanguage } from '@/context/LanguageContext';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLanguage, type AppLanguage } from '@/context/LanguageContext';
 import { useTheme, type Theme } from '@/context/ThemeContext';
+import { usePlayer } from '@/context/PlayerContext';
 import Image from 'next/image';
+import type { Song, Artist } from '@/lib/types';
 
 const LANGUAGES: { key: AppLanguage; label: string; native: string; flag: string }[] = [
   { key: 'oromo',   label: 'Afaan Oromoo', native: 'Afaan Oromoo', flag: '🇪🇹' },
@@ -81,9 +83,118 @@ const SOCIAL = [
 export default function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const { cachedSongIds } = usePlayer();
   const [pwaInstallable, setPwaInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [showLangPicker, setShowLangPicker] = useState(false);
+
+  // ── Offline / download state ───────────────────────────────────────────────
+  const [totalSongs,       setTotalSongs]       = useState(0);
+  const [cachedCount,      setCachedCount]      = useState(0);
+  const [isDownloading,    setIsDownloading]    = useState(false);
+  const [downloadDone,     setDownloadDone]     = useState(false);
+  const [storageUsed,      setStorageUsed]      = useState<string | null>(null);
+  const [clearConfirm,     setClearConfirm]     = useState(false);
+  const progressRef = useRef<{ done: number; total: number }>({ done: 0, total: 0 });
+
+  // Load total song count + check storage
+  useEffect(() => {
+    // Get total songs from API (or cached count as fallback)
+    fetch('/api/songs')
+      .then(r => r.json())
+      .then(({ songs }: { songs: Song[] }) => {
+        if (songs?.length) setTotalSongs(songs.length);
+      })
+      .catch(() => {});
+
+    // Storage estimate
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
+      navigator.storage.estimate().then(({ usage }) => {
+        if (usage) {
+          const mb = (usage / (1024 * 1024)).toFixed(1);
+          setStorageUsed(`${mb} MB`);
+        }
+      });
+    }
+  }, []);
+
+  // Sync cachedCount from context
+  useEffect(() => {
+    setCachedCount(cachedSongIds.size);
+    if (cachedSongIds.size > 0 && cachedSongIds.size >= totalSongs && totalSongs > 0) {
+      setDownloadDone(true);
+    }
+  }, [cachedSongIds, totalSongs]);
+
+  // Listen for SW progress messages
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'CACHE_PROGRESS') {
+        progressRef.current = { done: e.data.done, total: e.data.total };
+        setCachedCount(e.data.done);
+      }
+      if (e.data?.type === 'CACHE_COMPLETE') {
+        setIsDownloading(false);
+        setDownloadDone(true);
+        setCachedCount(e.data.total);
+        setTotalSongs(e.data.total);
+        // Refresh storage estimate
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+          navigator.storage.estimate().then(({ usage }) => {
+            if (usage) setStorageUsed(`${(usage / (1024 * 1024)).toFixed(1)} MB`);
+          });
+        }
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
+  }, []);
+
+  const handleDownloadAll = useCallback(async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    setDownloadDone(false);
+    try {
+      const [songsRes, artistsRes] = await Promise.all([
+        fetch('/api/songs'),
+        fetch('/api/artists'),
+      ]);
+      const { songs }: { songs: Song[] }     = await songsRes.json();
+      const { artists }: { artists: Artist[] } = artistsRes.ok ? await artistsRes.json() : { artists: [] };
+      if (!songs?.length) { setIsDownloading(false); return; }
+      setTotalSongs(songs.length);
+      // Send to SW for gentle background caching with progress reporting
+      const sw = navigator.serviceWorker.controller;
+      if (sw) {
+        sw.postMessage({
+          type: 'CACHE_ALL_SONGS_GENTLE',
+          songs: songs.map(s => ({ id: s.id, audio_url: s.audio_url })),
+        });
+      }
+      // Also cache artist images immediately
+      const imageUrls = [...new Set(
+        [...songs.map(s => s.image_url), ...artists.map(a => a.image_url)].filter(Boolean) as string[]
+      )];
+      if (imageUrls.length && sw) sw.postMessage({ type: 'CACHE_IMAGES', urls: imageUrls });
+    } catch {
+      setIsDownloading(false);
+    }
+  }, [isDownloading]);
+
+  const handleClearCache = useCallback(async () => {
+    if (!clearConfirm) { setClearConfirm(true); setTimeout(() => setClearConfirm(false), 4000); return; }
+    setClearConfirm(false);
+    try {
+      await caches.delete('faarfannaa-audio');
+      await caches.delete('faarfannaa-img');
+      localStorage.removeItem('audio_cached_ever');
+      localStorage.removeItem('songs_prefetched_at');
+      setCachedCount(0);
+      setDownloadDone(false);
+      setStorageUsed(null);
+    } catch { /* silent */ }
+  }, [clearConfirm]);
 
   useEffect(() => {
     const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); setPwaInstallable(true); };
@@ -102,6 +213,7 @@ export default function SettingsPage() {
 
   const currentLang = LANGUAGES.find(l => l.key === language)!;
   const isDark = resolvedTheme === 'dark';
+  const progress = totalSongs > 0 ? Math.min((cachedCount / totalSongs) * 100, 100) : 0;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -150,6 +262,130 @@ export default function SettingsPage() {
             </svg>
           </button>
         )}
+
+        {/* ── Offline & Storage ──────────────────────────────────────────── */}
+        <Section label="Offline & Storage">
+          {/* Status row */}
+          <div className="px-4 pt-4 pb-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                {downloadDone ? (
+                  <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: '#22C55E' }}>
+                    <svg width="14" height="14" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Ready offline
+                  </span>
+                ) : isDownloading ? (
+                  <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: '#D4AF37' }}>
+                    <span style={{
+                      width: 12, height: 12, borderRadius: '50%',
+                      border: '2px solid rgba(212,175,55,0.3)',
+                      borderTopColor: '#D4AF37',
+                      display: 'inline-block',
+                      animation: 'spin 0.7s linear infinite',
+                    }} />
+                    Downloading…
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold" style={{ color: 'var(--text-3)' }}>
+                    📥 Not fully downloaded
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-bold" style={{ color: 'var(--text-1)' }}>
+                {cachedCount}{totalSongs > 0 ? ` / ${totalSongs}` : ''} songs
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${progress}%`,
+                  background: downloadDone
+                    ? 'linear-gradient(90deg, #22C55E, #4ADE80)'
+                    : 'linear-gradient(90deg, #D4AF37, #F0D060)',
+                }}
+              />
+            </div>
+
+            {storageUsed && (
+              <p className="text-xs mt-1.5" style={{ color: 'var(--text-3)' }}>
+                Storage used: {storageUsed}
+              </p>
+            )}
+          </div>
+
+          {/* Download All button */}
+          <div className="px-4 pb-3" style={{ borderTop: '1px solid var(--border)' }}>
+            <button
+              onClick={handleDownloadAll}
+              disabled={isDownloading || downloadDone}
+              className="w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
+              style={{
+                background: downloadDone
+                  ? 'rgba(34,197,94,0.12)'
+                  : isDownloading
+                    ? 'rgba(212,175,55,0.15)'
+                    : 'linear-gradient(135deg, #D4AF37 0%, #F0D060 100%)',
+                color: downloadDone ? '#22C55E' : isDownloading ? '#D4AF37' : '#1a1a2e',
+                border: downloadDone ? '1px solid rgba(34,197,94,0.3)' : 'none',
+                opacity: isDownloading ? 0.9 : 1,
+                cursor: isDownloading || downloadDone ? 'default' : 'pointer',
+              }}
+            >
+              {downloadDone ? (
+                <>
+                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  All Songs Downloaded
+                </>
+              ) : isDownloading ? (
+                <>
+                  <span style={{
+                    width: 15, height: 15, borderRadius: '50%',
+                    border: '2.5px solid rgba(212,175,55,0.3)',
+                    borderTopColor: '#D4AF37',
+                    display: 'inline-block',
+                    animation: 'spin 0.7s linear infinite',
+                  }} />
+                  {cachedCount > 0 && totalSongs > 0
+                    ? `${cachedCount} of ${totalSongs} downloaded…`
+                    : 'Downloading…'}
+                </>
+              ) : (
+                <>
+                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Download All for Offline
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Clear cache */}
+          <div className="px-4 pb-4" style={{ borderTop: '1px solid var(--border)' }}>
+            <button
+              onClick={handleClearCache}
+              className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+              style={{
+                background: clearConfirm ? 'rgba(239,68,68,0.1)' : 'var(--surface-2)',
+                color: clearConfirm ? '#EF4444' : 'var(--text-3)',
+                border: clearConfirm ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border)',
+              }}
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {clearConfirm ? 'Tap again to confirm clear' : 'Clear Offline Cache'}
+            </button>
+          </div>
+        </Section>
 
         {/* ── Appearance ─────────────────────────────────────────────────── */}
         <Section label="Appearance">

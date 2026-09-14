@@ -275,17 +275,36 @@ self.addEventListener('message', (event) => {
     // so the user never needs to manually download songs for offline playback
     (async () => {
       const cache = await caches.open(AUDIO_CACHE);
+      let done = 0;
       for (const song of songs) {
-        if (!song.audio_url) continue;
+        if (!song.audio_url) { done++; continue; }
         const exists = await cache.match(song.audio_url);
-        if (exists) continue; // already cached
+        if (exists) { done++; continue; } // already cached
         try {
           const r = await fetch(new Request(song.audio_url));
           if (r.ok) await cache.put(song.audio_url, r);
         } catch { /* offline or failed — skip */ }
+        done++;
+        // Report progress back to all open tabs
+        self.clients.matchAll({ type: 'window' }).then((clients) => {
+          clients.forEach((client) => {
+            client.postMessage({
+              type: 'CACHE_PROGRESS',
+              done,
+              total: songs.length,
+              songId: song.id || null,
+            });
+          });
+        });
         // 3 second gap between files — avoids rate limits
         await new Promise(r => setTimeout(r, 3000));
       }
+      // Signal completion
+      self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'CACHE_COMPLETE', total: songs.length });
+        });
+      });
     })();
   }
 
